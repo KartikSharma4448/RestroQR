@@ -21,7 +21,7 @@ android {
             useSupportLibrary = true
         }
 
-        buildConfigField("String", "BASE_URL", "\"https://api.restroqr.com/api/\"")
+        buildConfigField("String", "BASE_URL", "\"https://restroqr-api.onrender.com/api/\"")
     }
 
     buildTypes {
