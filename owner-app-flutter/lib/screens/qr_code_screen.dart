@@ -170,6 +170,15 @@ class _QrCodeScreenState extends State<QrCodeScreen> {
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey[600]),
             ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: _loadQrCode,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Refresh QR Code'),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFFF6D00),
+              ),
+            ),
           ],
         ),
       ),
