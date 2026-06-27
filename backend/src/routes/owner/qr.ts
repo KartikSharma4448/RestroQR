@@ -30,7 +30,7 @@ router.get(
       }
 
       const restaurantToken = result.rows[0].restaurant_token;
-      const url = `https://restroqr.com/r/${restaurantToken}`;
+      const url = `https://restroqr.vercel.app/r/${restaurantToken}`;
 
       // Generate QR code PNG buffer (minimum 300x300px)
       let pngBuffer: Buffer;
