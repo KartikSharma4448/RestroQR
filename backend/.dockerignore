@@ -1,0 +1,15 @@
+node_modules
+dist
+.env
+.env.docker
+*.log
+coverage
+.git
+.gitignore
+.eslintrc.json
+.prettierrc
+jest.config.ts
+tsconfig.test.json
+src/tests
+src/**/*.test.ts
+README.md

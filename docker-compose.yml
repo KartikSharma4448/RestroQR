@@ -1,0 +1,59 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: restroqr-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: restroqr
+      POSTGRES_PASSWORD: restroqr_secret
+      POSTGRES_DB: restroqr
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U restroqr"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - restroqr-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: restroqr-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./backend/.env.docker
+    environment:
+      DATABASE_URL: postgresql://restroqr:restroqr_secret@postgres:5432/restroqr
+    networks:
+      - restroqr-network
+
+  admin-panel:
+    build:
+      context: ./admin-panel
+      dockerfile: Dockerfile
+    container_name: restroqr-admin
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+    networks:
+      - restroqr-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  restroqr-network:
+    driver: bridge

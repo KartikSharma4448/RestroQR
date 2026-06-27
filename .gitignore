@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Environment files
+.env
+.env.local
+.env.docker
+*.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Coverage
+coverage/
+
+# Android
+owner-app/.gradle/
+owner-app/build/
+owner-app/app/build/
+owner-app/local.properties
+owner-app/*.keystore
+owner-app/.idea/
+
+# Playwright
+customer-website/playwright-report/
+customer-website/test-results/
+
+# Lock files (keep package-lock, ignore others)
+yarn.lock
+pnpm-lock.yaml
+
+# Misc
+*.tgz
+.cache/
