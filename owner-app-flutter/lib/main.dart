@@ -24,7 +24,12 @@ import 'screens/qr_mode_settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    // Firebase not configured — app will work without push notifications
+    debugPrint('Firebase initialization failed: $e');
+  }
   runApp(const RestroQRApp());
 }
 

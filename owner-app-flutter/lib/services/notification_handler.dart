@@ -17,7 +17,6 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 /// and incoming notification display/navigation.
 class NotificationHandler {
   final OwnerApiService _ownerApiService;
-  final FirebaseMessaging _messaging;
 
   /// Callback invoked when user taps a notification — navigates to orders.
   VoidCallback? onNotificationTap;
@@ -28,10 +27,22 @@ class NotificationHandler {
     required OwnerApiService ownerApiService,
     FirebaseMessaging? messaging,
   })  : _ownerApiService = ownerApiService,
-        _messaging = messaging ?? FirebaseMessaging.instance;
+        _explicitMessaging = messaging;
+
+  final FirebaseMessaging? _explicitMessaging;
+
+  FirebaseMessaging get _messaging => _explicitMessaging ?? FirebaseMessaging.instance;
 
   /// Initialize notification handling. Call after successful login/auth check.
   Future<void> initialize() async {
+    try {
+      return _doInitialize();
+    } catch (e) {
+      log('NotificationHandler initialization failed (Firebase may not be configured): $e');
+    }
+  }
+
+  Future<void> _doInitialize() async {
     // Request notification permissions (Android 13+ requires explicit permission)
     final settings = await _messaging.requestPermission(
       alert: true,
