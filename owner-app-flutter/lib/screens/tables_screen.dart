@@ -51,7 +51,7 @@ class _TablesScreenState extends State<TablesScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = 'Network error. Please check your connection.';
+        _error = 'Error: ${e.toString()}';
         _isLoading = false;
       });
     }

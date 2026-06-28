@@ -22,13 +22,16 @@ class OwnerApiService {
       '/owner/tables',
       data: {'displayName': displayName},
     );
-    return TableData.fromJson(response.data['data'] as Map<String, dynamic>);
+    final data = response.data['data'];
+    final tableJson = data is Map && data.containsKey('table') ? data['table'] : data;
+    return TableData.fromJson(tableJson as Map<String, dynamic>);
   }
 
   /// List all tables for the owner's restaurant.
   Future<List<TableData>> listTables() async {
     final response = await _apiService.get('/owner/tables');
-    final List<dynamic> items = response.data['data'] ?? [];
+    final data = response.data['data'];
+    final List<dynamic> items = data is Map ? (data['tables'] ?? []) : (data ?? []);
     return items
         .map((item) => TableData.fromJson(item as Map<String, dynamic>))
         .toList();
@@ -43,7 +46,9 @@ class OwnerApiService {
       '/owner/tables/$tableId',
       data: {'displayName': displayName},
     );
-    return TableData.fromJson(response.data['data'] as Map<String, dynamic>);
+    final data = response.data['data'];
+    final tableJson = data is Map && data.containsKey('table') ? data['table'] : data;
+    return TableData.fromJson(tableJson as Map<String, dynamic>);
   }
 
   /// Delete a table by ID.
@@ -90,7 +95,9 @@ class OwnerApiService {
       '/owner/orders/$orderId/status',
       data: {'status': status},
     );
-    return OrderData.fromJson(response.data['data'] as Map<String, dynamic>);
+    final data = response.data['data'];
+    final orderJson = data is Map && data.containsKey('order') ? data['order'] : data;
+    return OrderData.fromJson(orderJson as Map<String, dynamic>);
   }
 
   /// Cancel an order.
@@ -98,7 +105,9 @@ class OwnerApiService {
     final response = await _apiService.post(
       '/owner/orders/$orderId/cancel',
     );
-    return OrderData.fromJson(response.data['data'] as Map<String, dynamic>);
+    final data = response.data['data'];
+    final orderJson = data is Map && data.containsKey('order') ? data['order'] : data;
+    return OrderData.fromJson(orderJson as Map<String, dynamic>);
   }
 
   // ---------------------------------------------------------------------------
@@ -124,7 +133,8 @@ class OwnerApiService {
       '/owner/earnings/breakdown',
       queryParameters: {'period': period, 'month': month},
     );
-    final List<dynamic> items = response.data['data'] ?? [];
+    final data = response.data['data'];
+    final List<dynamic> items = data is Map ? (data['breakdown'] ?? []) : (data ?? []);
     return items
         .map((item) => EarningsBreakdown.fromJson(item as Map<String, dynamic>))
         .toList();
@@ -159,7 +169,8 @@ class OwnerApiService {
       '/owner/analytics/items',
       queryParameters: {'period': period, 'month': month},
     );
-    final List<dynamic> items = response.data['data'] ?? [];
+    final data = response.data['data'];
+    final List<dynamic> items = data is Map ? (data['items'] ?? []) : (data ?? []);
     return items
         .map((item) => ItemAnalytics.fromJson(item as Map<String, dynamic>))
         .toList();
