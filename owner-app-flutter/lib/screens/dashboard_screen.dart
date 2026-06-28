@@ -289,7 +289,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             icon: Icons.settings_outlined,
             title: 'QR Mode Settings',
             subtitle: 'Switch between single and multi-table QR modes',
-            onTap: () => context.push('/settings/qr-mode'),
+            onTap: () async {
+              await context.push('/settings/qr-mode');
+              // Reload restaurant data to reflect mode change
+              _loadRestaurant();
+            },
           ),
         ],
       ),
