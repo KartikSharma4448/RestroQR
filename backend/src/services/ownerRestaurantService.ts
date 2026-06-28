@@ -40,6 +40,7 @@ export interface RestaurantRecord {
   logoUrl: string | null;
   coverImageUrl: string | null;
   status: string;
+  qrMode: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -137,6 +138,7 @@ function mapRow(row: Record<string, unknown>): RestaurantRecord {
     logoUrl: (row.logo_url as string) || null,
     coverImageUrl: (row.cover_image_url as string) || null,
     status: row.status as string,
+    qrMode: (row.qr_mode as string) || 'single',
     createdAt: (row.created_at as Date).toISOString(),
     updatedAt: (row.updated_at as Date).toISOString(),
   };
@@ -165,7 +167,7 @@ export async function createRestaurant(input: CreateRestaurantInput): Promise<Re
   const result = await pool.query(
     `INSERT INTO restaurants (owner_id, name, address, phone, restaurant_token, status)
      VALUES ($1, $2, $3, $4, $5, 'active')
-     RETURNING id, owner_id, name, address, phone, logo_url, cover_image_url, restaurant_token, status, created_at, updated_at`,
+     RETURNING id, owner_id, name, address, phone, logo_url, cover_image_url, restaurant_token, status, qr_mode, created_at, updated_at`,
     [input.ownerId, input.name.trim(), input.address.trim(), input.phone.trim(), restaurantToken]
   );
 
@@ -177,7 +179,7 @@ export async function createRestaurant(input: CreateRestaurantInput): Promise<Re
  */
 export async function getRestaurantByOwner(ownerId: string): Promise<RestaurantRecord> {
   const result = await pool.query(
-    `SELECT id, owner_id, name, address, phone, logo_url, cover_image_url, restaurant_token, status, created_at, updated_at
+    `SELECT id, owner_id, name, address, phone, logo_url, cover_image_url, restaurant_token, status, qr_mode, created_at, updated_at
      FROM restaurants WHERE owner_id = $1`,
     [ownerId]
   );
@@ -242,7 +244,7 @@ export async function updateRestaurant(
 
   const result = await pool.query(
     `UPDATE restaurants SET ${setClauses.join(', ')} WHERE id = $${paramIndex}
-     RETURNING id, owner_id, name, address, phone, logo_url, cover_image_url, restaurant_token, status, created_at, updated_at`,
+     RETURNING id, owner_id, name, address, phone, logo_url, cover_image_url, restaurant_token, status, qr_mode, created_at, updated_at`,
     values
   );
 
