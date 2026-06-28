@@ -4,6 +4,10 @@ import { fetchMenu, ApiError } from '@/lib/api';
 import MenuHeader from '@/components/MenuHeader';
 import MenuContent from '@/components/MenuContent';
 
+// Always fetch fresh menu data, never serve stale cache
+export const revalidate = 0;
+export const dynamic = 'force-dynamic';
+
 interface MenuPageProps {
   params: Promise<{ token: string }>;
 }
