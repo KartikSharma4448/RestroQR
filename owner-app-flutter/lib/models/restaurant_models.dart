@@ -7,6 +7,7 @@ class RestaurantData {
   final String? coverImageUrl;
   final String? restaurantToken;
   final String? status;
+  final String qrMode;
 
   RestaurantData({
     required this.id,
@@ -17,6 +18,7 @@ class RestaurantData {
     this.coverImageUrl,
     this.restaurantToken,
     this.status,
+    this.qrMode = 'single',
   });
 
   factory RestaurantData.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,7 @@ class RestaurantData {
       coverImageUrl: json['coverImageUrl'] ?? json['cover_image_url'],
       restaurantToken: json['restaurantToken'] ?? json['restaurant_token'],
       status: json['status'],
+      qrMode: json['qrMode'] ?? json['qr_mode'] ?? 'single',
     );
   }
 }

@@ -1,9 +1,12 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'models/restaurant_models.dart';
 import 'services/api_service.dart';
 import 'services/auth_service.dart';
+import 'services/notification_handler.dart';
+import 'services/owner_api_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/dashboard_screen.dart';
@@ -11,9 +14,17 @@ import 'screens/profile_setup_screen.dart';
 import 'screens/categories_screen.dart';
 import 'screens/food_items_screen.dart';
 import 'screens/food_item_form_screen.dart';
+import 'screens/orders_screen.dart';
 import 'screens/qr_code_screen.dart';
+import 'screens/tables_screen.dart';
+import 'screens/earnings_screen.dart';
+import 'screens/order_history_screen.dart';
+import 'screens/item_analytics_screen.dart';
+import 'screens/qr_mode_settings_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const RestroQRApp());
 }
 
@@ -24,15 +35,27 @@ class RestroQRApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final apiService = ApiService();
     final authService = AuthService(apiService);
+    final ownerApiService = OwnerApiService(apiService);
+    final notificationHandler = NotificationHandler(
+      ownerApiService: ownerApiService,
+    );
+
+    // Wire up notification handler for logout unregistration
+    authService.notificationHandler = notificationHandler;
 
     return MultiProvider(
       providers: [
         Provider<ApiService>.value(value: apiService),
         ChangeNotifierProvider<AuthService>.value(value: authService),
+        Provider<OwnerApiService>.value(value: ownerApiService),
+        Provider<NotificationHandler>.value(value: notificationHandler),
       ],
       child: Builder(
         builder: (context) {
-          final router = _createRouter(context.read<AuthService>());
+          final router = _createRouter(
+            context.read<AuthService>(),
+            context.read<NotificationHandler>(),
+          );
           return MaterialApp.router(
             title: 'RestroQR Owner',
             debugShowCheckedModeBanner: false,
@@ -70,8 +93,11 @@ class RestroQRApp extends StatelessWidget {
     );
   }
 
-  GoRouter _createRouter(AuthService authService) {
-    return GoRouter(
+  GoRouter _createRouter(
+    AuthService authService,
+    NotificationHandler notificationHandler,
+  ) {
+    final router = GoRouter(
       initialLocation: '/login',
       redirect: (context, state) async {
         await authService.checkAuthStatus();
@@ -83,6 +109,8 @@ class RestroQRApp extends StatelessWidget {
           return '/login';
         }
         if (isAuthenticated && isAuthRoute) {
+          // Register FCM token on successful auth
+          notificationHandler.initialize();
           return '/dashboard';
         }
         return null;
@@ -148,7 +176,38 @@ class RestroQRApp extends StatelessWidget {
           path: '/qr-code',
           builder: (context, state) => const QrCodeScreen(),
         ),
+        GoRoute(
+          path: '/orders',
+          builder: (context, state) => const OrdersScreen(),
+        ),
+        GoRoute(
+          path: '/tables',
+          builder: (context, state) => const TablesScreen(),
+        ),
+        GoRoute(
+          path: '/earnings',
+          builder: (context, state) => const EarningsScreen(),
+        ),
+        GoRoute(
+          path: '/order-history',
+          builder: (context, state) => const OrderHistoryScreen(),
+        ),
+        GoRoute(
+          path: '/analytics',
+          builder: (context, state) => const ItemAnalyticsScreen(),
+        ),
+        GoRoute(
+          path: '/settings/qr-mode',
+          builder: (context, state) => const QrModeSettingsScreen(),
+        ),
       ],
     );
+
+    // Set up notification tap to navigate to orders screen
+    notificationHandler.onNotificationTap = () {
+      router.go('/orders');
+    };
+
+    return router;
   }
 }

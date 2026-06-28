@@ -23,6 +23,7 @@ export interface PublicMenuResponse {
     name: string;
     logoUrl: string | null;
     coverImageUrl: string | null;
+    qrMode: string;
   };
   categories: PublicCategory[];
 }
@@ -58,7 +59,7 @@ export async function getPublicMenu(token: string): Promise<PublicMenuResponse> 
 
   // Look up restaurant by token
   const restaurantResult = await pool.query(
-    'SELECT id, name, logo_url, cover_image_url, status FROM restaurants WHERE restaurant_token = $1',
+    'SELECT id, name, logo_url, cover_image_url, status, qr_mode FROM restaurants WHERE restaurant_token = $1',
     [token]
   );
 
@@ -118,6 +119,7 @@ export async function getPublicMenu(token: string): Promise<PublicMenuResponse> 
       name: restaurant.name,
       logoUrl: restaurant.logo_url || null,
       coverImageUrl: restaurant.cover_image_url || null,
+      qrMode: restaurant.qr_mode || 'single',
     },
     categories,
   };

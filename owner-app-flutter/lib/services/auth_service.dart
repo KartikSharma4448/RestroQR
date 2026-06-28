@@ -2,15 +2,22 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../models/auth_models.dart';
 import 'api_service.dart';
+import 'notification_handler.dart';
 
 class AuthService extends ChangeNotifier {
   final ApiService _apiService;
+  NotificationHandler? _notificationHandler;
   UserData? _currentUser;
   bool _isAuthenticated = false;
   bool _isLoading = false;
   String? _error;
 
   AuthService(this._apiService);
+
+  /// Set the notification handler for FCM token unregistration on logout.
+  set notificationHandler(NotificationHandler handler) {
+    _notificationHandler = handler;
+  }
 
   UserData? get currentUser => _currentUser;
   bool get isAuthenticated => _isAuthenticated;
@@ -102,6 +109,10 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    // Unregister FCM token before clearing auth state
+    if (_notificationHandler != null) {
+      await _notificationHandler!.unregister();
+    }
     await _apiService.clearToken();
     _currentUser = null;
     _isAuthenticated = false;

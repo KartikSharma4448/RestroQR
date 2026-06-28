@@ -81,6 +81,7 @@ interface ApiMenuResponse {
       name: string;
       logoUrl: string | null;
       coverImageUrl: string | null;
+      qrMode: string;
     };
     categories: ApiCategory[];
   };
@@ -109,6 +110,7 @@ export interface MenuData {
     name: string;
     logo_url: string | null;
     cover_image_url: string | null;
+    qr_mode: string;
   };
   categories: Category[];
 }
@@ -127,6 +129,7 @@ export async function fetchMenu(token: string): Promise<{ success: true; data: M
         name: raw.data.restaurant.name,
         logo_url: raw.data.restaurant.logoUrl,
         cover_image_url: raw.data.restaurant.coverImageUrl,
+        qr_mode: raw.data.restaurant.qrMode || 'single',
       },
       categories: raw.data.categories.map((cat) => ({
         id: cat.id,

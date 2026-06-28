@@ -13,7 +13,13 @@ import ownerRestaurantRoutes from './routes/owner/restaurant';
 import ownerCategoryRoutes from './routes/owner/categories';
 import ownerQrRoutes from './routes/owner/qr';
 import ownerItemRoutes from './routes/owner/items';
+import ownerSettingsRoutes from './routes/owner/settings';
+import ownerTableRoutes from './routes/owner/tables';
+import ownerOrdersRoutes from './routes/owner/orders';
+import ownerEarningsRoutes from './routes/owner/earnings';
+import ownerNotificationRoutes from './routes/owner/notifications';
 import publicMenuRoutes from './routes/public/menu';
+import publicOrderRoutes from './routes/public/orders';
 
 dotenv.config();
 
@@ -39,7 +45,13 @@ app.use('/api/owner', authenticate, requireRole('owner'), ownerRestaurantRoutes)
 app.use('/api/owner', authenticate, requireRole('owner'), ownerCategoryRoutes);
 app.use('/api/owner', authenticate, requireRole('owner'), ownerQrRoutes);
 app.use('/api/owner', authenticate, requireRole('owner'), ownerItemRoutes);
+app.use('/api/owner', authenticate, requireRole('owner'), ownerSettingsRoutes);
+app.use('/api/owner', authenticate, requireRole('owner'), ownerTableRoutes);
+app.use('/api/owner', authenticate, requireRole('owner'), ownerOrdersRoutes);
+app.use('/api/owner', authenticate, requireRole('owner'), ownerEarningsRoutes);
+app.use('/api/owner', authenticate, requireRole('owner'), ownerNotificationRoutes);
 app.use('/api/public', publicMenuRoutes);
+app.use('/api/public', publicOrderRoutes);
 
 // 404 catch-all (must be after all routes)
 app.use(notFound);

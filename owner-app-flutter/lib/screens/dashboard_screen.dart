@@ -243,6 +243,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 12),
           _buildActionTile(
+            icon: Icons.receipt_long_outlined,
+            title: 'Orders',
+            subtitle: 'View and manage incoming orders',
+            onTap: () => context.go('/orders'),
+          ),
+          if (_restaurant!.qrMode == 'multi')
+            _buildActionTile(
+              icon: Icons.table_bar_outlined,
+              title: 'Tables',
+              subtitle: 'Manage tables and download QR codes',
+              onTap: () => context.go('/tables'),
+            ),
+          _buildActionTile(
+            icon: Icons.monetization_on_outlined,
+            title: 'Earnings',
+            subtitle: 'View monthly revenue and breakdowns',
+            onTap: () => context.go('/earnings'),
+          ),
+          _buildActionTile(
+            icon: Icons.analytics_outlined,
+            title: 'Analytics',
+            subtitle: 'Per-item sales and revenue analytics',
+            onTap: () => context.go('/analytics'),
+          ),
+          _buildActionTile(
             icon: Icons.category_outlined,
             title: 'Manage Categories',
             subtitle: 'Add, edit, and reorder menu categories',
@@ -259,6 +284,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             title: 'QR Code',
             subtitle: 'View and download your restaurant QR code',
             onTap: () => context.go('/qr-code'),
+          ),
+          _buildActionTile(
+            icon: Icons.settings_outlined,
+            title: 'QR Mode Settings',
+            subtitle: 'Switch between single and multi-table QR modes',
+            onTap: () => context.go('/settings/qr-mode'),
           ),
         ],
       ),
