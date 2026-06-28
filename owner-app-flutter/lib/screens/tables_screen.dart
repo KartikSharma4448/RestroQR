@@ -156,17 +156,44 @@ class _TablesScreenState extends State<TablesScreen> {
       final Uint8List qrBytes =
           await _ownerApiService.downloadQr(tableId: table.id);
 
-      final directory = await getApplicationDocumentsDirectory();
       final sanitizedName =
           table.displayName.replaceAll(RegExp(r'[^\w\s-]'), '').trim();
-      final filePath = '${directory.path}/qr_$sanitizedName.png';
+      final fileName = 'RestroQR_$sanitizedName.png';
+
+      // Save to Downloads/Pictures folder (visible in gallery)
+      Directory? saveDir;
+      if (Platform.isAndroid) {
+        // Try external storage Downloads first
+        saveDir = Directory('/storage/emulated/0/Download');
+        if (!await saveDir.exists()) {
+          saveDir = Directory('/storage/emulated/0/Pictures');
+          if (!await saveDir.exists()) {
+            saveDir = await getApplicationDocumentsDirectory();
+          }
+        }
+      } else {
+        saveDir = await getApplicationDocumentsDirectory();
+      }
+
+      final filePath = '${saveDir.path}/$fileName';
       final file = File(filePath);
       await file.writeAsBytes(qrBytes);
+
+      // Trigger media scan so it appears in gallery (Android)
+      if (Platform.isAndroid) {
+        await Process.run('am', [
+          'broadcast',
+          '-a',
+          'android.intent.action.MEDIA_SCANNER_SCAN_FILE',
+          '-d',
+          'file://$filePath',
+        ]);
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('QR code saved: $filePath'),
+            content: Text('QR code saved to $fileName'),
             backgroundColor: Colors.green.shade700,
             duration: const Duration(seconds: 3),
           ),
