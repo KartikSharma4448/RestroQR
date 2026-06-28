@@ -27,7 +27,7 @@ exports.up = (pgm) => {
     status: {
       type: 'order_status',
       notNull: true,
-      default: "'pending'",
+      default: pgm.func("'pending'"),
     },
     total: {
       type: 'decimal(10,2)',
