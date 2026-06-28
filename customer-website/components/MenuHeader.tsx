@@ -12,9 +12,9 @@ export default function MenuHeader({
   cover_image_url,
 }: MenuHeaderProps) {
   return (
-    <header className="relative mb-8">
+    <header className="relative mb-6">
       {/* Cover image */}
-      <div className="relative h-44 w-full overflow-hidden bg-gray-200 sm:h-56 md:h-64">
+      <div className="relative h-48 w-full overflow-hidden bg-gray-200 sm:h-56">
         {cover_image_url ? (
           <Image
             src={cover_image_url}
@@ -27,7 +27,7 @@ export default function MenuHeader({
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-orange-400 via-orange-500 to-red-500">
             <svg
-              className="h-16 w-16 text-white/40"
+              className="h-16 w-16 text-white/30"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -42,38 +42,36 @@ export default function MenuHeader({
             </svg>
           </div>
         )}
-        {/* Gradient overlay at bottom for text readability */}
-        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/30 to-transparent" />
+        {/* Bottom gradient */}
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/40 to-transparent" />
       </div>
 
-      {/* Logo */}
-      <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
-        <div className="h-20 w-20 overflow-hidden rounded-full border-4 border-white bg-white shadow-lg sm:h-24 sm:w-24">
+      {/* Logo + Name overlay */}
+      <div className="absolute inset-x-0 bottom-0 flex items-end gap-3 px-4 pb-4">
+        <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl border-2 border-white bg-white shadow-lg sm:h-18 sm:w-18">
           {logo_url ? (
             <Image
               src={logo_url}
-              alt={`${name} restaurant logo`}
-              width={96}
-              height={96}
+              alt={`${name} logo`}
+              width={72}
+              height={72}
               className="h-full w-full object-cover"
               loading="eager"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-orange-400 to-orange-600">
-              <span className="text-2xl font-bold text-white sm:text-3xl">
+              <span className="text-xl font-bold text-white sm:text-2xl">
                 {name.charAt(0).toUpperCase()}
               </span>
             </div>
           )}
         </div>
-      </div>
-
-      {/* Restaurant name */}
-      <div className="mt-14 text-center">
-        <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
-          {name}
-        </h1>
-        <p className="mt-1 text-sm text-gray-500">Digital Menu</p>
+        <div className="pb-0.5">
+          <h1 className="text-xl font-bold text-white drop-shadow-lg sm:text-2xl">
+            {name}
+          </h1>
+          <p className="text-xs text-white/80 drop-shadow">Digital Menu</p>
+        </div>
       </div>
     </header>
   );

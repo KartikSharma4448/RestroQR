@@ -16,12 +16,12 @@ export default function SearchBar({ value, onChange }: SearchBarProps) {
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Search menu items..."
-        className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 shadow-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
+        placeholder="Search for dishes..."
+        className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-10 pr-10 text-sm text-gray-900 placeholder-gray-400 transition focus:border-orange-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-100"
         aria-label="Search menu items"
       />
       <svg
-        className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+        className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -38,7 +38,7 @@ export default function SearchBar({ value, onChange }: SearchBarProps) {
         <button
           type="button"
           onClick={() => onChange('')}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-gray-400 transition hover:bg-gray-200 hover:text-gray-600"
           aria-label="Clear search"
         >
           <svg

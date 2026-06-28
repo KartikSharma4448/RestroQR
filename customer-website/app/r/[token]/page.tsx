@@ -1,10 +1,33 @@
 import { redirect } from 'next/navigation';
+import type { Metadata } from 'next';
 import { fetchMenu, ApiError } from '@/lib/api';
 import MenuHeader from '@/components/MenuHeader';
 import MenuContent from '@/components/MenuContent';
 
 interface MenuPageProps {
   params: Promise<{ token: string }>;
+}
+
+export async function generateMetadata({ params }: MenuPageProps): Promise<Metadata> {
+  const { token } = await params;
+
+  try {
+    const response = await fetchMenu(token);
+    const { restaurant } = response.data;
+    return {
+      title: `${restaurant.name} — Menu`,
+      description: `View the full menu of ${restaurant.name}. Browse categories, filter by veg/non-veg, search items.`,
+      openGraph: {
+        title: `${restaurant.name} — Digital Menu`,
+        description: `Scan QR to view ${restaurant.name}'s menu. Powered by RestroQR.`,
+        images: restaurant.cover_image_url ? [restaurant.cover_image_url] : undefined,
+      },
+    };
+  } catch {
+    return {
+      title: 'Menu | RestroQR',
+    };
+  }
 }
 
 export default async function MenuPage({ params }: MenuPageProps) {
@@ -29,7 +52,7 @@ export default async function MenuPage({ params }: MenuPageProps) {
   );
 
   return (
-    <main className="mx-auto max-w-3xl overflow-x-hidden pb-8">
+    <main className="mx-auto min-h-screen max-w-3xl overflow-x-hidden bg-white shadow-sm">
       <MenuHeader
         name={restaurant.name}
         logo_url={restaurant.logo_url}
