@@ -18,25 +18,54 @@ export const metadata: Metadata = {
     'contactless menu',
     'restaurant menu app',
     'QR code restaurant',
+    'table ordering system',
+    'restaurant order management',
+    'QR code ordering',
+    'digital restaurant menu free',
+    'scan and order food',
+    'restaurant POS',
   ],
   authors: [{ name: 'RestroQR' }],
+  metadataBase: new URL('https://restro-qr-peach.vercel.app'),
+  alternates: {
+    canonical: '/',
+  },
+  verification: {
+    google: '1VojfIFEMi41CWLVS_8B9dxQWwz7Qy1dOFsXa8UzOmc',
+  },
   openGraph: {
     title: 'RestroQR — Free Digital QR Menu for Restaurants',
     description:
-      'Create a beautiful digital menu. Customers scan QR, see your menu. Free forever.',
+      'Create a beautiful digital menu. Customers scan QR, see your menu and place orders. Free forever.',
     type: 'website',
     siteName: 'RestroQR',
     locale: 'en_IN',
     url: 'https://restro-qr-peach.vercel.app',
+    images: [
+      {
+        url: '/logo.png',
+        width: 512,
+        height: 512,
+        alt: 'RestroQR Logo',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'RestroQR — Free Digital QR Menu',
-    description: 'Digital QR menu for restaurants. Free forever.',
+    description: 'Digital QR menu and ordering for restaurants. Free forever.',
+    images: ['/logo.png'],
   },
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
 };
 

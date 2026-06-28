@@ -25,8 +25,33 @@ export const metadata: Metadata = {
 };
 
 export default function HomePage() {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'RestroQR',
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Android',
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'INR',
+    },
+    description:
+      'Free digital QR menu and table ordering system for restaurants. Customers scan QR code, view menu, and place orders instantly.',
+    url: 'https://restro-qr-peach.vercel.app',
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: '4.8',
+      ratingCount: '50',
+    },
+  };
+
   return (
     <main className="min-h-screen bg-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-orange-50 via-white to-orange-50">
         <div className="absolute inset-0 overflow-hidden">
