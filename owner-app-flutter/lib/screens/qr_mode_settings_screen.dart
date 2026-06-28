@@ -148,13 +148,20 @@ class _QrModeSettingsScreenState extends State<QrModeSettingsScreen> {
         e.type == DioExceptionType.connectionError) {
       return 'Network error. Please check your connection.';
     }
+    if (e.response?.statusCode == 404) {
+      return 'QR mode settings are not yet available on the server. '
+          'Please ensure your backend is updated and migrations have been run.';
+    }
+    if (e.response?.statusCode == 500) {
+      return 'Server error. The settings service may not be fully deployed yet.';
+    }
     if (e.response?.data is Map) {
       final data = e.response!.data as Map;
       if (data['error'] != null && data['error']['message'] != null) {
         return data['error']['message'];
       }
     }
-    return 'An unexpected error occurred';
+    return 'An unexpected error occurred. Please try again.';
   }
 
   @override
@@ -163,7 +170,7 @@ class _QrModeSettingsScreenState extends State<QrModeSettingsScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/dashboard'),
+          onPressed: () => context.pop(),
         ),
         title: const Text('QR Mode Settings'),
         backgroundColor: const Color(0xFFFF6D00),

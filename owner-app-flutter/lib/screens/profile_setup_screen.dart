@@ -145,7 +145,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/dashboard'),
+          onPressed: () => context.pop(),
         ),
         title: Text(_isEditing ? 'Edit Profile' : 'Setup Profile'),
         backgroundColor: const Color(0xFFFF6D00),

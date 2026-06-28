@@ -82,13 +82,20 @@ class _ItemAnalyticsScreenState extends State<ItemAnalyticsScreen> {
         e.type == DioExceptionType.connectionError) {
       return 'Network error. Please check your connection.';
     }
+    if (e.response?.statusCode == 404) {
+      return 'Analytics feature is not yet available on the server. '
+          'Please ensure your backend is updated and migrations have been run.';
+    }
+    if (e.response?.statusCode == 500) {
+      return 'Server error. The analytics service may not be fully deployed yet.';
+    }
     if (e.response?.data is Map) {
       final data = e.response!.data as Map;
       if (data['error'] != null && data['error']['message'] != null) {
         return data['error']['message'];
       }
     }
-    return 'An unexpected error occurred.';
+    return 'An unexpected error occurred. Please try again.';
   }
 
   void _onPeriodChanged(String period) {

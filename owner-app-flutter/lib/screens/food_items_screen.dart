@@ -147,14 +147,14 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/categories'),
+          onPressed: () => context.pop(),
         ),
         title: Text(widget.categoryName ?? 'Food Items'),
         backgroundColor: const Color(0xFFFF6D00),
         foregroundColor: Colors.white,
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.go(
+        onPressed: () => context.push(
           '/categories/${widget.categoryId}/items/add',
           extra: widget.categoryName,
         ),
@@ -303,7 +303,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.edit_outlined, size: 20),
-                      onPressed: () => context.go(
+                      onPressed: () => context.push(
                         '/categories/${widget.categoryId}/items/edit/${item.id}',
                         extra: {
                           'categoryName': widget.categoryName,

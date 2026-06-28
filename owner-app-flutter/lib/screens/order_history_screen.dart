@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -133,6 +134,26 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   }
 
   String _extractErrorMessage(Object error) {
+    if (error is DioException) {
+      if (error.type == DioExceptionType.connectionTimeout ||
+          error.type == DioExceptionType.receiveTimeout ||
+          error.type == DioExceptionType.connectionError) {
+        return 'Network error. Please check your connection.';
+      }
+      if (error.response?.statusCode == 404) {
+        return 'Order history feature is not yet available on the server. '
+            'Please ensure your backend is updated and migrations have been run.';
+      }
+      if (error.response?.statusCode == 500) {
+        return 'Server error. The order history service may not be fully deployed yet.';
+      }
+      if (error.response?.data is Map) {
+        final data = error.response!.data as Map;
+        if (data['error'] != null && data['error']['message'] != null) {
+          return data['error']['message'];
+        }
+      }
+    }
     final errorStr = error.toString();
     if (errorStr.contains('connection')) {
       return 'Network error. Please check your connection.';

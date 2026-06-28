@@ -97,10 +97,7 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        context.go(
-          '/categories/${widget.categoryId}/items',
-          extra: widget.categoryName,
-        );
+        context.pop();
       }
     } on DioException catch (e) {
       if (mounted) {
@@ -146,10 +143,7 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go(
-            '/categories/${widget.categoryId}/items',
-            extra: widget.categoryName,
-          ),
+          onPressed: () => context.pop(),
         ),
         title: Text(_isEditing ? 'Edit Item' : 'Add Item'),
         backgroundColor: const Color(0xFFFF6D00),

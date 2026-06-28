@@ -234,7 +234,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/dashboard'),
+          onPressed: () => context.pop(),
         ),
         title: const Text('Categories'),
         backgroundColor: const Color(0xFFFF6D00),
@@ -323,7 +323,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 ),
               ],
             ),
-            onTap: () => context.go('/categories/${category.id}/items',
+            onTap: () => context.push('/categories/${category.id}/items',
                 extra: category.name),
           ),
         );
