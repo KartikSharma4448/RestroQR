@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export const metadata: Metadata = {
   title: 'RestroQR — Free Digital QR Menu for Restaurants',
@@ -35,9 +36,7 @@ export default function HomePage() {
 
         <nav className="relative mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
           <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-500">
-              <span className="text-lg font-bold text-white">Q</span>
-            </div>
+            <Image src="/logo-icon.png" alt="RestroQR" width={36} height={36} className="rounded-lg" />
             <span className="text-xl font-bold text-gray-900">RestroQR</span>
           </div>
           <a
@@ -271,9 +270,7 @@ export default function HomePage() {
       <footer className="border-t border-gray-100 bg-white py-8">
         <div className="mx-auto max-w-6xl px-6 text-center">
           <div className="flex items-center justify-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-orange-500">
-              <span className="text-sm font-bold text-white">Q</span>
-            </div>
+            <Image src="/logo-icon.png" alt="RestroQR" width={28} height={28} className="rounded-md" />
             <span className="text-lg font-bold text-gray-900">RestroQR</span>
           </div>
           <p className="mt-3 text-sm text-gray-500">
