@@ -124,7 +124,7 @@ router.get(
       const qrUrl = await getTableQrUrl(tableId, restaurantId);
 
       // Build the full URL using the CUSTOMER_BASE_URL env variable or a default
-      const baseUrl = process.env.CUSTOMER_BASE_URL || 'http://localhost:3001';
+      const baseUrl = process.env.CUSTOMER_BASE_URL || 'https://restro-qr-peach.vercel.app';
       const fullUrl = `${baseUrl}${qrUrl}`;
 
       // Generate QR code as PNG buffer
