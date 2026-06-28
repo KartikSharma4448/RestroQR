@@ -19,10 +19,19 @@ export default function CategorySection({ name, items }: CategorySectionProps) {
   if (items.length === 0) return null;
 
   return (
-    <section className="mb-6">
-      <h2 className="mb-3 border-b border-gray-200 pb-2 text-base font-bold text-gray-800 sm:text-lg">
-        {name}
-      </h2>
+    <section className="mb-8">
+      {/* Category header */}
+      <div className="mb-4 flex items-center gap-3">
+        <h2 className="text-lg font-bold text-gray-900 sm:text-xl">
+          {name}
+        </h2>
+        <div className="h-px flex-1 bg-gradient-to-r from-orange-200 to-transparent" />
+        <span className="text-xs font-medium text-gray-400">
+          {items.length} {items.length === 1 ? 'item' : 'items'}
+        </span>
+      </div>
+
+      {/* Items list */}
       <div className="flex flex-col gap-3">
         {items.map((item) => (
           <FoodItemCard
