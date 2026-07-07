@@ -13,6 +13,9 @@ class OrderData {
   final DateTime? paymentReceivedAt;
   final DateTime? cancelledAt;
 
+  final String? customerName;
+  final String? customerPhone;
+
   OrderData({
     required this.id,
     required this.orderRef,
@@ -25,6 +28,8 @@ class OrderData {
     this.completedAt,
     this.paymentReceivedAt,
     this.cancelledAt,
+    this.customerName,
+    this.customerPhone,
   });
 
   factory OrderData.fromJson(Map<String, dynamic> json) {
@@ -65,6 +70,8 @@ class OrderData {
           : json['cancelled_at'] != null
               ? DateTime.parse(json['cancelled_at'])
               : null,
+      customerName: json['customerName'] ?? json['customer_name'],
+      customerPhone: json['customerPhone'] ?? json['customer_phone'],
     );
   }
 
@@ -81,6 +88,8 @@ class OrderData {
       'completedAt': completedAt?.toIso8601String(),
       'paymentReceivedAt': paymentReceivedAt?.toIso8601String(),
       'cancelledAt': cancelledAt?.toIso8601String(),
+      'customerName': customerName,
+      'customerPhone': customerPhone,
     };
   }
 }

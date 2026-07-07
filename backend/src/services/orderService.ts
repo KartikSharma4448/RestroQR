@@ -37,6 +37,8 @@ export interface OrderRecord {
   updatedAt: string;
   items?: OrderItemRecord[];
   tableDisplayName?: string;
+  customerName?: string | null;
+  customerPhone?: string | null;
 }
 
 // --- Valid status transitions ---
@@ -93,6 +95,8 @@ function mapOrderRow(row: Record<string, unknown>): OrderRecord {
     cancelledAt: row.cancelled_at ? (row.cancelled_at as Date).toISOString() : null,
     updatedAt: (row.updated_at as Date).toISOString(),
     tableDisplayName: row.display_name as string | undefined,
+    customerName: row.customer_name as string | null | undefined,
+    customerPhone: row.customer_phone as string | null | undefined,
   };
 }
 
@@ -124,7 +128,9 @@ function mapOrderItemRow(row: Record<string, unknown>): OrderItemRecord {
  */
 export async function createOrder(
   tableToken: string,
-  items: OrderItemInput[]
+  items: OrderItemInput[],
+  customerName?: string,
+  customerPhone?: string
 ): Promise<OrderRecord & { items: OrderItemRecord[] }> {
   // Validate items array is not empty
   if (!items || items.length === 0) {
@@ -243,10 +249,10 @@ export async function createOrder(
 
     // Insert order
     const orderResult = await client.query(
-      `INSERT INTO orders (restaurant_id, table_id, order_ref, status, total)
-       VALUES ($1, $2, $3, 'pending', $4)
-       RETURNING id, restaurant_id, table_id, order_ref, status, total, created_at, accepted_at, completed_at, payment_received_at, cancelled_at, updated_at`,
-      [restaurantId, tableId, orderRef, total.toFixed(2)]
+      `INSERT INTO orders (restaurant_id, table_id, order_ref, status, total, customer_name, customer_phone)
+       VALUES ($1, $2, $3, 'pending', $4, $5, $6)
+       RETURNING id, restaurant_id, table_id, order_ref, status, total, created_at, accepted_at, completed_at, payment_received_at, cancelled_at, updated_at, customer_name, customer_phone`,
+      [restaurantId, tableId, orderRef, total.toFixed(2), customerName || null, customerPhone || null]
     );
 
     const order = mapOrderRow(orderResult.rows[0]);
@@ -308,7 +314,7 @@ export async function getOrders(
   const ordersResult = await pool.query(
     `SELECT o.id, o.restaurant_id, o.table_id, o.order_ref, o.status, o.total,
             o.created_at, o.accepted_at, o.completed_at, o.payment_received_at,
-            o.cancelled_at, o.updated_at, t.display_name
+            o.cancelled_at, o.updated_at, o.customer_name, o.customer_phone, t.display_name
      FROM orders o
      LEFT JOIN tables t ON o.table_id = t.id
      ${whereClause}
@@ -365,7 +371,7 @@ export async function updateOrderStatus(
   const orderResult = await pool.query(
     `SELECT o.id, o.restaurant_id, o.table_id, o.order_ref, o.status, o.total,
             o.created_at, o.accepted_at, o.completed_at, o.payment_received_at,
-            o.cancelled_at, o.updated_at, t.display_name
+            o.cancelled_at, o.updated_at, o.customer_name, o.customer_phone, t.display_name
      FROM orders o
      LEFT JOIN tables t ON o.table_id = t.id
      WHERE o.id = $1 AND o.restaurant_id = $2`,
@@ -401,7 +407,7 @@ export async function updateOrderStatus(
   const updatedResult = await pool.query(
     `SELECT o.id, o.restaurant_id, o.table_id, o.order_ref, o.status, o.total,
             o.created_at, o.accepted_at, o.completed_at, o.payment_received_at,
-            o.cancelled_at, o.updated_at, t.display_name
+            o.cancelled_at, o.updated_at, o.customer_name, o.customer_phone, t.display_name
      FROM orders o
      LEFT JOIN tables t ON o.table_id = t.id
      WHERE o.id = $1`,
@@ -424,7 +430,7 @@ export async function cancelOrder(
   const orderResult = await pool.query(
     `SELECT o.id, o.restaurant_id, o.table_id, o.order_ref, o.status, o.total,
             o.created_at, o.accepted_at, o.completed_at, o.payment_received_at,
-            o.cancelled_at, o.updated_at, t.display_name
+            o.cancelled_at, o.updated_at, o.customer_name, o.customer_phone, t.display_name
      FROM orders o
      LEFT JOIN tables t ON o.table_id = t.id
      WHERE o.id = $1 AND o.restaurant_id = $2`,
@@ -467,7 +473,7 @@ export async function cancelOrder(
   const updatedResult = await pool.query(
     `SELECT o.id, o.restaurant_id, o.table_id, o.order_ref, o.status, o.total,
             o.created_at, o.accepted_at, o.completed_at, o.payment_received_at,
-            o.cancelled_at, o.updated_at, t.display_name
+            o.cancelled_at, o.updated_at, o.customer_name, o.customer_phone, t.display_name
      FROM orders o
      LEFT JOIN tables t ON o.table_id = t.id
      WHERE o.id = $1`,

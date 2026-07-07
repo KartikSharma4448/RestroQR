@@ -18,7 +18,7 @@ const router = Router();
  */
 router.post('/orders', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { tableToken, items } = req.body;
+    const { tableToken, items, customerName, customerPhone } = req.body;
 
     // Validate required fields
     if (!tableToken || typeof tableToken !== 'string') {
@@ -33,8 +33,23 @@ router.post('/orders', async (req: Request, res: Response, next: NextFunction) =
       ]);
     }
 
-    // Create the order (handles token decryption, validation, and price calculation)
-    const order = await createOrder(tableToken, items);
+    // Optional customerPhone validation
+    if (customerPhone) {
+      const phoneDigits = customerPhone.trim();
+      if (!/^\d{10}$/.test(phoneDigits)) {
+        throw new ValidationError('Phone must be exactly 10 digits', [
+          { field: 'customerPhone', message: 'Phone must be exactly 10 digits' },
+        ]);
+      }
+    }
+
+    // Create the order (handles token decryption, validation, price calculation, and customer details)
+    const order = await createOrder(
+      tableToken,
+      items,
+      customerName?.trim(),
+      customerPhone?.trim()
+    );
 
     // Fire-and-forget: send push notification to the restaurant owner
     // Fetch table display name for the notification

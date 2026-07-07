@@ -9,6 +9,9 @@ import OrderCartBar from './OrderCartBar';
 import { CartProvider } from './CartContext';
 import { filterMenuItems, type FilterableFoodItem } from '@/lib/menuFilter';
 
+import LoyaltyStarsCard from './LoyaltyStarsCard';
+import LoyaltyPromptModal from './LoyaltyPromptModal';
+
 interface Category {
   id: string;
   name: string;
@@ -25,15 +28,17 @@ interface TableMenuContentProps {
 export default function TableMenuContent({ categories, tableToken, restaurantToken }: TableMenuContentProps) {
   return (
     <CartProvider>
-      <TableMenuContentInner categories={categories} />
+      <TableMenuContentInner categories={categories} restaurantToken={restaurantToken} />
       <OrderCartBar tableToken={tableToken} restaurantToken={restaurantToken} />
     </CartProvider>
   );
 }
 
-function TableMenuContentInner({ categories }: { categories: Category[] }) {
+function TableMenuContentInner({ categories, restaurantToken }: { categories: Category[]; restaurantToken: string }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [badgeFilter, setBadgeFilter] = useState<'veg' | 'non_veg' | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const filteredCategories = useMemo(() => {
     if (searchTerm.length === 0 && badgeFilter === null) {
@@ -81,6 +86,15 @@ function TableMenuContentInner({ categories }: { categories: Category[] }) {
             : `${totalItems} items • ${categories.length} categories`}
         </p>
       </div>
+
+      {/* Loyalty Stars Card */}
+      <LoyaltyStarsCard key={refreshKey} restaurantToken={restaurantToken} />
+
+      {/* Loyalty Registration Modal */}
+      <LoyaltyPromptModal
+        onJoin={() => setRefreshKey((prev) => prev + 1)}
+        onSkip={() => {}}
+      />
 
       {/* Menu items */}
       <div className="space-y-2">

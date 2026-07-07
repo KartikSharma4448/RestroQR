@@ -20,6 +20,7 @@ import ownerEarningsRoutes from './routes/owner/earnings';
 import ownerNotificationRoutes from './routes/owner/notifications';
 import publicMenuRoutes from './routes/public/menu';
 import publicOrderRoutes from './routes/public/orders';
+import publicLoyaltyRoutes from './routes/public/loyalty';
 
 dotenv.config();
 
@@ -72,6 +73,7 @@ app.use('/api/owner', authenticate, requireRole('owner'), ownerEarningsRoutes);
 app.use('/api/owner', authenticate, requireRole('owner'), ownerNotificationRoutes);
 app.use('/api/public', publicMenuRoutes);
 app.use('/api/public', publicOrderRoutes);
+app.use('/api/public', publicLoyaltyRoutes);
 
 // 404 catch-all (must be after all routes)
 app.use(notFound);

@@ -73,6 +73,9 @@ export default function OrderCartBar({ tableToken, restaurantToken }: OrderCartB
     setOrderError(null);
 
     try {
+      const savedPhone = localStorage.getItem('loyalty_phone');
+      const savedName = localStorage.getItem('loyalty_name');
+
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://restroqr-api.onrender.com';
       const response = await fetch(`${apiUrl}/api/public/orders`, {
         method: 'POST',
@@ -83,6 +86,8 @@ export default function OrderCartBar({ tableToken, restaurantToken }: OrderCartB
             itemId: item.id,
             quantity: item.quantity,
           })),
+          customerName: savedName || undefined,
+          customerPhone: savedPhone || undefined,
         }),
       });
 
