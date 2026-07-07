@@ -33,10 +33,20 @@ RestroQR is a full-stack restaurant management platform that lets owners create 
 
 ### For Customers (Web — No App Needed)
 - 📷 Scan table QR code
-- 🍽️ Browse full restaurant menu
-- 🛒 Add items to cart and place orders
+- 🍽️ Browse full restaurant menu with **premium, Appetizing visual layout**
+- 🧭 **Horizontal Category Quick-Nav Bar** — Smooth scroll to categories on tap
+- 🟢 Veg/Non-veg filter tags and real-time Search
+- 🛒 Add items to cart with smooth slide-up Cart Bars and review sheets
 - ✅ Get order confirmation with reference number
 - 🔄 Place multiple orders from the same table
+
+### Platform Security Hardening
+- 🛡️ **Brute-Force & Lockout Protection** — In-memory login attempt lockout (5 failures → 15 min lock)
+- 🔒 **Cryptographic Key Enforcement** — Enforced 32-character minimum length and entropy checks for JWT secrets
+- 🌐 **Restricted CORS Policy** — CORS origin whitelist mapping instead of wildcard access
+- ⚡ **Oversized Payload Cap** — 10KB request size limits to block Denial of Service (DoS) attempts
+- 🗃️ **Git Secrets Defense** — Configured gitignore policy to prevent exposure of `.env` configurations
+
 
 ## Architecture
 

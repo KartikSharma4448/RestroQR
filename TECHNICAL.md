@@ -316,11 +316,14 @@ Each transition sets its corresponding column:
 
 ## Security
 
-### Authentication
+### Authentication & Lockout
 - **JWT tokens** with HS256 signing
-- Tokens include: `sub` (user ID), `role` (owner/admin), `iat`, `exp`
-- 24-hour expiration
-- Passwords hashed with **bcrypt** (12 rounds)
+  - Secret key strength validation (minimum 32 characters, rejects known weak placeholders).
+- **Passwords hashed** with **bcrypt** (12 rounds)
+- **Account Lockout Protection**
+  - Limits failed login attempts per account identifier (email/phone).
+  - 5 failed login attempts → 15-minute temporary lockout.
+  - Implemented in-memory (Map) at the service layer to mitigate automated brute-force attacks.
 
 ### Table Token Encryption
 - **AES-256-GCM** encryption for table identifiers
@@ -329,17 +332,19 @@ Each transition sets its corresponding column:
 - Key loaded from `TABLE_TOKEN_SECRET` env variable
 - Invalid tokens return generic 404 (no information leakage)
 
-### Rate Limiting
-- Public routes: 100 requests/15 minutes per IP
-- Auth routes: 10 requests/15 minutes per IP
-- Prevents brute force and abuse
+### Rate Limiting & DoS Mitigation
+- Public routes: 60 requests/minute per IP (`publicRateLimiter`)
+- Auth routes: 10 requests/minute per IP (`authRateLimiter`)
+- Express JSON body parser size capped at `10kb` to block memory-exhaustion payloads.
 
-### Other
-- Helmet.js for security headers
-- CORS configured for allowed origins
-- Parameterized SQL queries (no SQL injection)
-- Input validation on all endpoints
-- Owner isolation (can only access own restaurant data)
+### Network & Data Policies
+- Helmet.js for security headers.
+- Nginx Content-Security-Policy (CSP) headers applied to restrict script and style execution origins.
+- CORS restricted to whitelisted origins defined in `CORS_ORIGINS` env var (allows localhost in dev, blocks unauthorized domains in production).
+- Parameterized SQL queries (no SQL injection).
+- Input validation on query and body parameters (e.g., validating order statuses, analytics periods, and month string patterns).
+- Owner isolation (can only access own restaurant data).
+
 
 ---
 

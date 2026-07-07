@@ -26,11 +26,31 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
+// Security middleware
 app.use(helmet());
-app.use(cors());
+
+// CORS configuration — restrict to known origins
+const allowedOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+// In development, allow localhost if no origins configured
+if (allowedOrigins.length === 0 && process.env.NODE_ENV !== 'production') {
+  allowedOrigins.push('http://localhost:5173', 'http://localhost:3000', 'http://localhost:8080');
+}
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, server-to-server)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+}));
 app.use(publicRateLimiter);
-app.use(express.json());
+app.use(express.json({ limit: '10kb' }));
 
 // Health check
 app.get('/health', (_req, res) => {

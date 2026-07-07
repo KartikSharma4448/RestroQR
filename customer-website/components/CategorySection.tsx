@@ -13,28 +13,29 @@ interface FoodItem {
 }
 
 interface CategorySectionProps {
+  id: string;
   name: string;
   items: FoodItem[];
 }
 
-export default function CategorySection({ name, items }: CategorySectionProps) {
+export default function CategorySection({ id, name, items }: CategorySectionProps) {
   if (items.length === 0) return null;
 
   return (
-    <section className="mb-8">
+    <section id={id} className="mb-10 scroll-mt-28">
       {/* Category header */}
-      <div className="mb-4 flex items-center gap-3">
-        <h2 className="text-lg font-bold text-gray-900">
+      <div className="mb-5 flex items-center gap-3">
+        <h2 className="text-xl font-black tracking-tight text-slate-800">
           {name}
         </h2>
-        <div className="h-px flex-1 bg-gradient-to-r from-gray-200 to-transparent" />
-        <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-500">
+        <div className="h-0.5 flex-1 bg-gradient-to-r from-slate-200 to-transparent" />
+        <span className="rounded-xl bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">
           {items.length}
         </span>
       </div>
 
       {/* Items grid */}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-5">
         {items.map((item) => (
           <FoodItemCard
             key={item.id}

@@ -5,6 +5,70 @@ import { AuthenticationError, ForbiddenError, ValidationError, ConflictError, Va
 
 const BCRYPT_COST_FACTOR = 12;
 
+// --- Account lockout configuration ---
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+interface LoginAttemptRecord {
+  failedAttempts: number;
+  lastFailedAt: number;
+  lockedUntil: number | null;
+}
+
+// In-memory store for login attempts (per account identifier).
+// For production multi-instance deployments, replace with Redis.
+const loginAttempts = new Map<string, LoginAttemptRecord>();
+
+/**
+ * Checks if an account identifier is currently locked out.
+ * Automatically clears expired lockouts.
+ */
+function checkLockout(identifier: string): void {
+  const record = loginAttempts.get(identifier);
+  if (!record) return;
+
+  if (record.lockedUntil && Date.now() < record.lockedUntil) {
+    const remainingMs = record.lockedUntil - Date.now();
+    const remainingMin = Math.ceil(remainingMs / 60000);
+    throw new ForbiddenError(
+      `Account temporarily locked due to too many failed attempts. Try again in ${remainingMin} minute(s).`,
+      'ACCOUNT_LOCKED'
+    );
+  }
+
+  // Clear expired lockout
+  if (record.lockedUntil && Date.now() >= record.lockedUntil) {
+    loginAttempts.delete(identifier);
+  }
+}
+
+/**
+ * Records a failed login attempt and triggers lockout if threshold exceeded.
+ */
+function recordFailedAttempt(identifier: string): void {
+  const record = loginAttempts.get(identifier) || {
+    failedAttempts: 0,
+    lastFailedAt: 0,
+    lockedUntil: null,
+  };
+
+  record.failedAttempts++;
+  record.lastFailedAt = Date.now();
+
+  if (record.failedAttempts >= MAX_FAILED_ATTEMPTS) {
+    record.lockedUntil = Date.now() + LOCKOUT_DURATION_MS;
+  }
+
+  loginAttempts.set(identifier, record);
+}
+
+/**
+ * Clears login attempt tracking for an identifier after successful login.
+ */
+function clearFailedAttempts(identifier: string): void {
+  loginAttempts.delete(identifier);
+}
+
 export interface RegisterInput {
   email?: string;
   phone?: string;
@@ -173,6 +237,10 @@ export async function login(input: LoginInput): Promise<LoginResult> {
     ]);
   }
 
+  // Account lockout check — use the identifier (email or phone) as the key
+  const lockoutKey = (email || phone || '').toLowerCase();
+  checkLockout(lockoutKey);
+
   let userId: string | null = null;
   let passwordHash: string | null = null;
   let role: 'admin' | 'owner' = 'owner';
@@ -228,14 +296,19 @@ export async function login(input: LoginInput): Promise<LoginResult> {
 
   // User not found — return generic auth error (no info leakage)
   if (!userId || !passwordHash) {
+    recordFailedAttempt(lockoutKey);
     throw new AuthenticationError('Invalid credentials');
   }
 
   // Verify password
   const isPasswordValid = await bcrypt.compare(password, passwordHash);
   if (!isPasswordValid) {
+    recordFailedAttempt(lockoutKey);
     throw new AuthenticationError('Invalid credentials');
   }
+
+  // Successful login — clear any failed attempt tracking
+  clearFailedAttempts(lockoutKey);
 
   // Check account status (only applicable to owners)
   if (role === 'owner' && status === 'disabled') {

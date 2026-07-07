@@ -25,44 +25,48 @@ export default function FoodItemCard({
   const { addItem, removeItem, getQuantity } = useCart();
   const quantity = getQuantity(id);
 
+  const isVeg = badge === 'veg';
+
   return (
     <div
-      className={`relative flex gap-3 rounded-xl border border-gray-100 bg-white p-4 transition-all duration-200 ${
+      className={`relative flex gap-4 rounded-3xl border p-4 transition-all duration-300 ${
         !is_available
-          ? 'opacity-50 grayscale'
-          : 'hover:border-orange-100 hover:shadow-md'
+          ? 'opacity-40 grayscale border-slate-100 bg-slate-50/30'
+          : quantity > 0
+          ? 'border-emerald-500/40 bg-emerald-50/5 shadow-md shadow-emerald-500/5'
+          : 'border-slate-100 bg-white hover:border-slate-200 hover:shadow-lg hover:shadow-slate-100/80'
       }`}
     >
       {/* Item details */}
       <div className="flex min-w-0 flex-1 flex-col justify-between">
         <div>
-          {/* Badge */}
+          {/* Veg/Non-Veg Badge with custom icon styles */}
           <span
-            className={`inline-flex h-4 w-4 items-center justify-center rounded-sm border-2 ${
-              badge === 'veg' ? 'border-green-600' : 'border-red-600'
+            className={`inline-flex h-5 w-5 items-center justify-center rounded-lg border-2 ${
+              isVeg ? 'border-emerald-600 bg-emerald-50/50' : 'border-rose-600 bg-rose-50/50'
             }`}
-            aria-label={badge === 'veg' ? 'Vegetarian' : 'Non-vegetarian'}
+            aria-label={isVeg ? 'Vegetarian' : 'Non-vegetarian'}
           >
             <span
-              className={`h-2 w-2 rounded-full ${
-                badge === 'veg' ? 'bg-green-600' : 'bg-red-600'
+              className={`h-2.5 w-2.5 rounded-full ${
+                isVeg ? 'bg-emerald-600' : 'bg-rose-600'
               }`}
             />
           </span>
 
           {/* Name */}
-          <h3 className="mt-1.5 text-base font-semibold leading-tight text-gray-900">
+          <h3 className="mt-2 text-base font-extrabold tracking-tight text-slate-800 leading-snug">
             {name}
           </h3>
 
           {/* Price */}
-          <p className="mt-1.5 text-sm font-bold text-gray-800">
+          <p className="mt-1 text-base font-black text-slate-900">
             ₹{typeof price === 'number' ? price.toFixed(0) : price}
           </p>
 
           {/* Description */}
           {description && (
-            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-gray-500">
+            <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-slate-500 font-medium">
               {description}
             </p>
           )}
@@ -70,22 +74,22 @@ export default function FoodItemCard({
       </div>
 
       {/* Image + Add button column */}
-      <div className="relative flex flex-shrink-0 flex-col items-center">
+      <div className="relative flex flex-shrink-0 flex-col items-center justify-center">
         {/* Image */}
         {image_url ? (
-          <div className="relative h-[100px] w-[118px] overflow-hidden rounded-xl bg-gray-100">
+          <div className="relative h-[110px] w-[120px] overflow-hidden rounded-2xl bg-slate-100 shadow-md">
             <Image
               src={image_url}
               alt={`Photo of ${name}`}
               fill
-              className="object-cover"
-              sizes="118px"
+              className="object-cover transition-transform duration-500 hover:scale-105"
+              sizes="120px"
               loading="lazy"
             />
           </div>
         ) : (
-          <div className="flex h-[100px] w-[118px] items-center justify-center rounded-xl bg-gradient-to-br from-orange-50 to-orange-100">
-            <svg className="h-8 w-8 text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex h-[110px] w-[120px] items-center justify-center rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100/80 border border-slate-200/40">
+            <svg className="h-9 w-9 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -103,33 +107,33 @@ export default function FoodItemCard({
               <button
                 type="button"
                 onClick={() => addItem({ id, name, price, badge })}
-                className="rounded-lg border border-gray-200 bg-white px-6 py-1.5 text-sm font-bold text-green-600 shadow-md transition-all duration-150 hover:bg-green-50 hover:shadow-lg active:scale-95"
+                className="rounded-xl border border-slate-200 bg-white px-7 py-2 text-xs font-black tracking-wider text-emerald-600 shadow-lg shadow-slate-200/80 transition-all duration-200 hover:bg-emerald-50 hover:border-emerald-200 hover:shadow-xl active:scale-95"
               >
                 ADD
               </button>
             ) : (
-              <div className="flex items-center gap-0 overflow-hidden rounded-lg border border-green-600 bg-green-600 shadow-md">
+              <div className="flex items-center gap-0 overflow-hidden rounded-xl border border-emerald-600 bg-emerald-600 shadow-lg shadow-emerald-600/20">
                 <button
                   type="button"
                   onClick={() => removeItem(id)}
-                  className="flex h-8 w-8 items-center justify-center text-white transition hover:bg-green-700 active:scale-90"
+                  className="flex h-8 w-8 items-center justify-center text-white transition hover:bg-emerald-700 active:scale-90"
                   aria-label={`Decrease quantity of ${name}`}
                 >
-                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M20 12H4" />
+                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3.5} d="M20 12H4" />
                   </svg>
                 </button>
-                <span className="flex h-8 w-8 items-center justify-center bg-white text-sm font-bold text-green-600">
+                <span className="flex h-8 w-8 items-center justify-center bg-white text-xs font-black text-emerald-600">
                   {quantity}
                 </span>
                 <button
                   type="button"
                   onClick={() => addItem({ id, name, price, badge })}
-                  className="flex h-8 w-8 items-center justify-center text-white transition hover:bg-green-700 active:scale-90"
+                  className="flex h-8 w-8 items-center justify-center text-white transition hover:bg-emerald-700 active:scale-90"
                   aria-label={`Increase quantity of ${name}`}
                 >
-                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3.5} d="M12 4v16m8-8H4" />
                   </svg>
                 </button>
               </div>
@@ -139,8 +143,8 @@ export default function FoodItemCard({
 
         {/* Unavailable label */}
         {!is_available && (
-          <span className="absolute -bottom-2 rounded bg-gray-200 px-2 py-0.5 text-[10px] font-medium text-gray-600">
-            Unavailable
+          <span className="absolute -bottom-2 rounded-lg bg-slate-200 px-2.5 py-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+            Sold Out
           </span>
         )}
       </div>

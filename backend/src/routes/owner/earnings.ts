@@ -8,7 +8,38 @@ import {
   getItemAnalytics,
 } from '../../services/earningsService';
 
+import { ValidationError } from '../../errors';
+
 const router = Router();
+
+const VALID_PERIODS = ['daily', 'weekly', 'monthly'] as const;
+type Period = typeof VALID_PERIODS[number];
+
+/**
+ * Validates the 'period' query parameter.
+ */
+function validatePeriod(value: string | undefined, defaultValue: Period): Period {
+  if (!value) return defaultValue;
+  if (!VALID_PERIODS.includes(value as Period)) {
+    throw new ValidationError('Invalid period value', [
+      { field: 'period', message: `Period must be one of: ${VALID_PERIODS.join(', ')}` },
+    ]);
+  }
+  return value as Period;
+}
+
+/**
+ * Validates the 'month' query parameter format (YYYY-MM).
+ */
+function validateMonth(value: string | undefined): string {
+  if (!value) return getCurrentMonth();
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) {
+    throw new ValidationError('Invalid month format', [
+      { field: 'month', message: 'Month must be in YYYY-MM format (e.g., 2025-01)' },
+    ]);
+  }
+  return value;
+}
 
 /**
  * GET /api/owner/earnings/summary?month=2025-01
@@ -20,7 +51,7 @@ router.get(
     try {
       const ownerId = req.user!.sub;
       const restaurantId = await getRestaurantIdForOwner(ownerId);
-      const month = (req.query.month as string) || getCurrentMonth();
+      const month = validateMonth(req.query.month as string | undefined);
 
       const summary = await getMonthlySummary(restaurantId, month);
 
@@ -44,8 +75,8 @@ router.get(
     try {
       const ownerId = req.user!.sub;
       const restaurantId = await getRestaurantIdForOwner(ownerId);
-      const period = (req.query.period as 'daily' | 'weekly' | 'monthly') || 'daily';
-      const month = (req.query.month as string) || getCurrentMonth();
+      const period = validatePeriod(req.query.period as string | undefined, 'daily');
+      const month = validateMonth(req.query.month as string | undefined);
 
       const breakdown = await getEarningsBreakdown(restaurantId, period, month);
 
@@ -97,8 +128,8 @@ router.get(
     try {
       const ownerId = req.user!.sub;
       const restaurantId = await getRestaurantIdForOwner(ownerId);
-      const period = (req.query.period as 'daily' | 'weekly' | 'monthly') || 'monthly';
-      const month = (req.query.month as string) || getCurrentMonth();
+      const period = validatePeriod(req.query.period as string | undefined, 'monthly');
+      const month = validateMonth(req.query.month as string | undefined);
 
       const result = await getItemAnalytics(restaurantId, period, month);
 

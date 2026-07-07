@@ -12,65 +12,73 @@ export default function MenuHeader({
   cover_image_url,
 }: MenuHeaderProps) {
   return (
-    <header className="relative mb-6">
-      {/* Cover image */}
-      <div className="relative h-48 w-full overflow-hidden bg-gray-200 sm:h-56">
+    <header className="relative mb-8 overflow-hidden rounded-b-[2rem] bg-slate-900 shadow-xl shadow-slate-950/10">
+      {/* Cover image area */}
+      <div className="relative h-56 w-full overflow-hidden bg-slate-950 sm:h-64">
         {cover_image_url ? (
           <Image
             src={cover_image_url}
             alt={`${name} restaurant cover`}
             fill
-            className="object-cover"
+            className="object-cover opacity-80 transition-transform duration-700 hover:scale-105"
             sizes="(max-width: 768px) 100vw, 768px"
             priority
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-orange-400 via-orange-500 to-red-500">
-            <svg
-              className="h-16 w-16 text-white/30"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M12 8.25v-1.5m0 1.5c-1.355 0-2.697.056-4.024.166C6.845 8.51 6 9.473 6 10.608v2.513m6-4.87c1.355 0 2.697.055 4.024.165C17.155 8.51 18 9.473 18 10.608v2.513m-3-4.87v-1.5m-6 1.5v-1.5m12 9.75l-1.5.75a3.354 3.354 0 01-3 0 3.354 3.354 0 00-3 0 3.354 3.354 0 01-3 0 3.354 3.354 0 00-3 0 3.354 3.354 0 01-3 0L3 16.5m15-3.38a48.474 48.474 0 00-6-.37c-2.032 0-4.034.125-6 .37m12 0c.39.049.777.102 1.163.16 1.07.16 1.837 1.094 1.837 2.175v5.17c0 .62-.504 1.124-1.125 1.124H4.125A1.125 1.125 0 013 20.625v-5.17c0-1.08.768-2.014 1.837-2.174A47.78 47.78 0 016 13.12M12.265 3.11a.375.375 0 11-.53 0L12 2.845l.265.265zm-3 0a.375.375 0 11-.53 0L9 2.845l.265.265zm6 0a.375.375 0 11-.53 0L15 2.845l.265.265z"
-              />
-            </svg>
-          </div>
+          <div className="absolute inset-0 bg-gradient-to-tr from-amber-600 via-orange-600 to-rose-600 opacity-80" />
         )}
-        {/* Bottom gradient */}
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/40 to-transparent" />
+        
+        {/* Modern decorative mesh background pattern */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.06)_0%,transparent_60%)]" />
+        
+        {/* Soft, rich gradient overlay for typography readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent" />
       </div>
 
-      {/* Logo + Name overlay */}
-      <div className="absolute inset-x-0 bottom-0 flex items-end gap-3 px-4 pb-4">
-        <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl border-2 border-white bg-white shadow-lg sm:h-18 sm:w-18">
-          {logo_url ? (
-            <Image
-              src={logo_url}
-              alt={`${name} logo`}
-              width={72}
-              height={72}
-              className="h-full w-full object-cover"
-              loading="eager"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-orange-400 to-orange-600">
-              <span className="text-xl font-bold text-white sm:text-2xl">
-                {name.charAt(0).toUpperCase()}
+      {/* Floating Info Card */}
+      <div className="relative -mt-14 px-4 pb-6">
+        <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-slate-900/90 p-5 shadow-2xl backdrop-blur-xl sm:flex-row sm:items-center">
+          {/* Logo container with ambient glow */}
+          <div className="relative -mt-12 h-20 w-20 flex-shrink-0 self-start overflow-hidden rounded-2xl border-4 border-slate-900 bg-slate-900 shadow-xl sm:mt-0 sm:self-center">
+            {logo_url ? (
+              <Image
+                src={logo_url}
+                alt={`${name} logo`}
+                width={80}
+                height={80}
+                className="h-full w-full object-cover"
+                loading="eager"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-amber-400 to-orange-500 font-extrabold text-white">
+                <span className="text-3xl tracking-tight">
+                  {name.charAt(0).toUpperCase()}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Restaurant details */}
+          <div className="flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
+                {name}
+              </h1>
+              <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-400 border border-emerald-500/25">
+                <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Table Ordering Enabled
               </span>
             </div>
-          )}
-        </div>
-        <div className="pb-0.5">
-          <h1 className="text-xl font-bold text-white drop-shadow-lg sm:text-2xl">
-            {name}
-          </h1>
-          <p className="text-xs text-white/80 drop-shadow">Digital Menu</p>
+            
+            <div className="mt-2 flex flex-wrap gap-4 text-xs font-medium text-slate-400">
+              <span className="flex items-center gap-1">
+                <span>📍</span> Fast contactless service
+              </span>
+              <span className="flex items-center gap-1">
+                <span>⭐</span> Premium Dining
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </header>

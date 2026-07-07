@@ -8,7 +8,11 @@ import {
   OrderStatus,
 } from '../../services/orderService';
 
+import { ValidationError } from '../../errors';
+
 const router = Router();
+
+const VALID_ORDER_STATUSES: OrderStatus[] = ['pending', 'accepted', 'completed', 'payment_received', 'cancelled'];
 
 /**
  * GET /api/owner/orders
@@ -25,7 +29,16 @@ router.get(
       const ownerId = req.user!.sub;
       const restaurantId = await getRestaurantIdForOwner(ownerId);
 
-      const status = req.query.status as OrderStatus | undefined;
+      const statusParam = req.query.status as string | undefined;
+      let status: OrderStatus | undefined;
+      if (statusParam) {
+        if (!VALID_ORDER_STATUSES.includes(statusParam as OrderStatus)) {
+          throw new ValidationError('Invalid status value', [
+            { field: 'status', message: `Status must be one of: ${VALID_ORDER_STATUSES.join(', ')}` },
+          ]);
+        }
+        status = statusParam as OrderStatus;
+      }
       const page = req.query.page ? parseInt(req.query.page as string, 10) : undefined;
       const pageSize = req.query.pageSize ? parseInt(req.query.pageSize as string, 10) : undefined;
 

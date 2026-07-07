@@ -7,8 +7,10 @@ services:
       POSTGRES_USER: restroqr
       POSTGRES_PASSWORD: restroqr_secret
       POSTGRES_DB: restroqr
-    ports:
-      - "5432:5432"
+    # Port exposed only for local development debugging.
+    # Remove or comment out in production deployments.
+    # ports:
+    #   - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -34,6 +36,7 @@ services:
       - ./backend/.env.docker
     environment:
       DATABASE_URL: postgresql://restroqr:restroqr_secret@postgres:5432/restroqr
+      TABLE_TOKEN_SECRET: ${TABLE_TOKEN_SECRET:-CHANGE_ME_generate_a_32_byte_hex_key}
     networks:
       - restroqr-network
 
