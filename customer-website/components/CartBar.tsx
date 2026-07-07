@@ -108,6 +108,13 @@ export default function CartBar() {
                 </div>
                 <p className="text-2xl font-black text-slate-900">₹{totalPrice.toFixed(0)}</p>
               </div>
+              
+              {/* Table QR Ordering Notice */}
+              <div className="mt-4 rounded-2xl bg-amber-50 border border-amber-100/80 p-3 text-center">
+                <p className="text-xs font-black text-amber-800 leading-normal">
+                  📢 Phone se order place karne ke liye table par lage QR code ko scan karein. Ye checkouts/view-only menu hai.
+                </p>
+              </div>
             </div>
           </div>
         </div>
