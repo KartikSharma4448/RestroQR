@@ -5,9 +5,9 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "tsc && npm run migrate",
+    "build": "tsc",
     "migrate": "node-pg-migrate up --migrations-dir migrations --migration-file-language js",
-    "start": "node dist/index.js",
+    "start": "npm run migrate && node dist/index.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
