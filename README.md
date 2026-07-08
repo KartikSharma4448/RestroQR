@@ -25,6 +25,7 @@ RestroQR is a full-stack restaurant management platform that lets owners create 
 ### For Restaurant Owners (Android App)
 - 📋 **Digital Menu** — Create categories, add food items with photos, veg/non-veg badges
 - 🪑 **Multi-Table QR** — Generate unique QR codes per table for ordering
+- 📥 **Reliable QR Download** — Download and share Table QR codes securely to Android storage
 - 📱 **Real-Time Orders** — Receive and manage orders with push notifications
 - 📊 **Earnings Dashboard** — Monthly revenue, daily/weekly breakdowns
 - 📈 **Item Analytics** — See best-selling items and revenue per item
@@ -34,6 +35,8 @@ RestroQR is a full-stack restaurant management platform that lets owners create 
 ### For Customers (Web — No App Needed)
 - 📷 Scan table QR code
 - 🍽️ Browse full restaurant menu with **premium, Appetizing visual layout**
+- ⭐️ **Loyalty Rewards Program** — Interactive stars card tracks visits and unlocks free treats
+- 👤 **Customer Info Prompt** — Customers can save their name and phone to collect loyalty points
 - 🧭 **Horizontal Category Quick-Nav Bar** — Smooth scroll to categories on tap
 - 🟢 Veg/Non-veg filter tags and real-time Search
 - 🛒 Add items to cart with smooth slide-up Cart Bars and review sheets
@@ -44,6 +47,7 @@ RestroQR is a full-stack restaurant management platform that lets owners create 
 - 🛡️ **Brute-Force & Lockout Protection** — In-memory login attempt lockout (5 failures → 15 min lock)
 - 🔒 **Cryptographic Key Enforcement** — Enforced 32-character minimum length and entropy checks for JWT secrets
 - 🌐 **Restricted CORS Policy** — CORS origin whitelist mapping instead of wildcard access
+- 🔄 **Zero-Downtime Migrations** — Automatic database migrations bundled during Render start-up sequence
 - ⚡ **Oversized Payload Cap** — 10KB request size limits to block Denial of Service (DoS) attempts
 - 🗃️ **Git Secrets Defense** — Configured gitignore policy to prevent exposure of `.env` configurations
 
