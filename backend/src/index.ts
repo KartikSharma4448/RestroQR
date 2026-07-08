@@ -36,9 +36,20 @@ const allowedOrigins = (process.env.CORS_ORIGINS || '')
   .map((o) => o.trim())
   .filter(Boolean);
 
+// Always allow the customer website origin (Vercel deployment)
+const customerSiteOrigin = process.env.CUSTOMER_BASE_URL || 'https://restro-qr-peach.vercel.app';
+if (!allowedOrigins.includes(customerSiteOrigin)) {
+  allowedOrigins.push(customerSiteOrigin);
+}
+
 // In development, allow localhost if no origins configured
-if (allowedOrigins.length === 0 && process.env.NODE_ENV !== 'production') {
-  allowedOrigins.push('http://localhost:5173', 'http://localhost:3000', 'http://localhost:8080');
+if (allowedOrigins.length === 0 || process.env.NODE_ENV !== 'production') {
+  const devOrigins = ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:8080'];
+  for (const origin of devOrigins) {
+    if (!allowedOrigins.includes(origin)) {
+      allowedOrigins.push(origin);
+    }
+  }
 }
 
 app.use(cors({

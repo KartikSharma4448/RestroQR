@@ -160,40 +160,17 @@ class _TablesScreenState extends State<TablesScreen> {
           table.displayName.replaceAll(RegExp(r'[^\w\s-]'), '').trim();
       final fileName = 'RestroQR_$sanitizedName.png';
 
-      // Save to Downloads/Pictures folder (visible in gallery)
-      Directory? saveDir;
-      if (Platform.isAndroid) {
-        // Try external storage Downloads first
-        saveDir = Directory('/storage/emulated/0/Download');
-        if (!await saveDir.exists()) {
-          saveDir = Directory('/storage/emulated/0/Pictures');
-          if (!await saveDir.exists()) {
-            saveDir = await getApplicationDocumentsDirectory();
-          }
-        }
-      } else {
-        saveDir = await getApplicationDocumentsDirectory();
-      }
+      // Save to app documents directory (works reliably on all Android versions)
+      final saveDir = await getApplicationDocumentsDirectory();
 
       final filePath = '${saveDir.path}/$fileName';
       final file = File(filePath);
       await file.writeAsBytes(qrBytes);
 
-      // Trigger media scan so it appears in gallery (Android)
-      if (Platform.isAndroid) {
-        await Process.run('am', [
-          'broadcast',
-          '-a',
-          'android.intent.action.MEDIA_SCANNER_SCAN_FILE',
-          '-d',
-          'file://$filePath',
-        ]);
-      }
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('QR code saved to $fileName'),
+            content: Text('QR code saved: $fileName'),
             backgroundColor: Colors.green.shade700,
             duration: const Duration(seconds: 3),
           ),
@@ -263,11 +240,12 @@ class _TablesScreenState extends State<TablesScreen> {
       return 'Network error. Please check your connection.';
     }
     if (e.response?.statusCode == 404) {
-      return 'Tables feature is not yet available on the server. '
-          'Please ensure your backend is updated and migrations have been run.';
+      return 'Could not reach the tables service. '
+          'The server may be starting up — please try again in a moment.';
     }
     if (e.response?.statusCode == 500) {
-      return 'Server error. The tables service may not be fully deployed yet.';
+      return 'Server is temporarily unavailable. '
+          'It may be waking up from sleep — please wait a moment and retry.';
     }
     if (e.response?.data is Map) {
       final data = e.response!.data as Map;

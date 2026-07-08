@@ -119,11 +119,12 @@ class _OrdersScreenState extends State<OrdersScreen>
       return 'Network error. Please check your connection.';
     }
     if (e.response?.statusCode == 404) {
-      return 'Orders feature is not yet available on the server. '
-          'Please ensure your backend is updated and migrations have been run.';
+      return 'Could not reach the orders service. '
+          'The server may be starting up — please try again in a moment.';
     }
     if (e.response?.statusCode == 500) {
-      return 'Server error. The orders service may not be fully deployed yet.';
+      return 'Server is temporarily unavailable. '
+          'It may be waking up from sleep — please wait a moment and retry.';
     }
     if (e.response?.data is Map) {
       final data = e.response!.data as Map;
