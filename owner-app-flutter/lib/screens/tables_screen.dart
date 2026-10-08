@@ -1,14 +1,15 @@
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
+import '../ui/app_theme.dart';
+import '../ui/owner_widgets.dart';
 import 'package:provider/provider.dart';
 
 import '../models/table_model.dart';
 import '../services/api_service.dart';
 import '../services/owner_api_service.dart';
+import '../services/qr_save_service.dart';
 
 /// Screen for managing restaurant tables (add, edit, delete, download QR).
 /// Only accessible when the restaurant's qr_mode is 'multi'.
@@ -24,6 +25,7 @@ class _TablesScreenState extends State<TablesScreen> {
   List<TableData> _tables = [];
   bool _isLoading = true;
   String? _error;
+  final Set<String> _savingQr = {};
 
   @override
   void initState() {
@@ -152,25 +154,21 @@ class _TablesScreenState extends State<TablesScreen> {
   }
 
   Future<void> _downloadQr(TableData table) async {
+    if (_savingQr.contains(table.id)) return;
+    setState(() => _savingQr.add(table.id));
     try {
-      final Uint8List qrBytes =
-          await _ownerApiService.downloadQr(tableId: table.id);
+      final Uint8List qrBytes = await _ownerApiService.downloadQr(
+        tableId: table.id,
+      );
 
-      final sanitizedName =
-          table.displayName.replaceAll(RegExp(r'[^\w\s-]'), '').trim();
-      final fileName = 'RestroQR_$sanitizedName.png';
-
-      // Save to app documents directory (works reliably on all Android versions)
-      final saveDir = await getApplicationDocumentsDirectory();
-
-      final filePath = '${saveDir.path}/$fileName';
-      final file = File(filePath);
-      await file.writeAsBytes(qrBytes);
+      if (!mounted) return;
+      final message = await QrSaveService.save(qrBytes, table.displayName);
+      if (message == null) return;
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('QR code saved: $fileName'),
+            content: Text(message),
             backgroundColor: Colors.green.shade700,
             duration: const Duration(seconds: 3),
           ),
@@ -194,6 +192,8 @@ class _TablesScreenState extends State<TablesScreen> {
           ),
         );
       }
+    } finally {
+      if (mounted) setState(() => _savingQr.remove(table.id));
     }
   }
 
@@ -223,9 +223,7 @@ class _TablesScreenState extends State<TablesScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(controller.text),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFFF6D00),
-            ),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.accent),
             child: const Text('Save'),
           ),
         ],
@@ -259,14 +257,10 @@ class _TablesScreenState extends State<TablesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tables'),
-        backgroundColor: const Color(0xFFFF6D00),
-        foregroundColor: Colors.white,
-      ),
+      appBar: AppBar(title: const Text('Tables')),
       floatingActionButton: FloatingActionButton(
         onPressed: _addTable,
-        backgroundColor: const Color(0xFFFF6D00),
+        backgroundColor: AppColors.accent,
         child: const Icon(Icons.add, color: Colors.white),
       ),
       body: _buildBody(),
@@ -287,34 +281,18 @@ class _TablesScreenState extends State<TablesScreen> {
             const SizedBox(height: 16),
             Text(_error!, textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _loadTables,
-              child: const Text('Retry'),
-            ),
+            FilledButton(onPressed: _loadTables, child: const Text('Retry')),
           ],
         ),
       );
     }
 
     if (_tables.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.table_restaurant_outlined,
-                size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              'No tables yet',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Tap + to add your first table',
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-          ],
-        ),
+      return OwnerEmptyState(
+        icon: Icons.table_bar_outlined,
+        title: 'No tables yet',
+        action: 'Add table',
+        onAction: _addTable,
       );
     }
 
@@ -329,10 +307,10 @@ class _TablesScreenState extends State<TablesScreen> {
             margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
             child: ListTile(
               leading: CircleAvatar(
-                backgroundColor: const Color(0xFFFF6D00).withOpacity(0.1),
+                backgroundColor: AppColors.accent.withValues(alpha: 0.1),
                 child: const Icon(
                   Icons.table_restaurant,
-                  color: Color(0xFFFF6D00),
+                  color: AppColors.accent,
                 ),
               ),
               title: Text(
@@ -343,16 +321,24 @@ class _TablesScreenState extends State<TablesScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.qr_code),
-                    onPressed: () => _downloadQr(table),
+                    icon: _savingQr.contains(table.id)
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.download),
+                    onPressed: _savingQr.contains(table.id)
+                        ? null
+                        : () => _downloadQr(table),
                     tooltip: 'Download QR Code',
-                    color: const Color(0xFFFF6D00),
+                    color: AppColors.accent,
                   ),
                   IconButton(
                     icon: const Icon(Icons.edit_outlined),
                     onPressed: () => _editTable(table),
                     tooltip: 'Edit Name',
-                    color: const Color(0xFFFF6D00),
+                    color: AppColors.accent,
                   ),
                   IconButton(
                     icon: const Icon(Icons.delete_outline),

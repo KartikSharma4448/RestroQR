@@ -17,6 +17,9 @@ function getSecretKey(): Buffer {
   if (!secret) {
     throw new Error('TABLE_TOKEN_SECRET environment variable is not set');
   }
+  if (process.env.NODE_ENV === 'production' && (secret.length < 32 || secret.startsWith('your-'))) {
+    throw new Error('TABLE_TOKEN_SECRET must be a strong random secret of at least 32 characters');
+  }
   // If the secret is exactly 64 hex characters, treat as hex-encoded 32-byte key
   if (/^[0-9a-fA-F]{64}$/.test(secret)) {
     return Buffer.from(secret, 'hex');
@@ -134,28 +137,16 @@ export async function createTable(
     throw new ConflictError('A table with this name already exists');
   }
 
-  // Generate encrypted table token — use a temporary UUID for the table ID,
-  // then update after insert (we need the DB-generated ID)
-  // Instead, we insert first to get the ID, then generate and update the token
-  const insertResult = await pool.query(
-    `INSERT INTO tables (restaurant_id, display_name, table_token)
-     VALUES ($1, $2, $3)
-     RETURNING id, restaurant_id, display_name, table_token, created_at, updated_at`,
-    [restaurantId, displayName.trim(), 'temp_placeholder']
-  );
-
-  const tableId = insertResult.rows[0].id as string;
+  // Generate the ID and token first so concurrent inserts never share a placeholder.
+  const tableId = crypto.randomUUID();
   const tableToken = encryptTableToken(tableId, restaurantId);
-
-  // Update the token with the real encrypted value
-  const updateResult = await pool.query(
-    `UPDATE tables SET table_token = $1, updated_at = NOW()
-     WHERE id = $2
+  const insertResult = await pool.query(
+    `INSERT INTO tables (id, restaurant_id, display_name, table_token)
+     VALUES ($1, $2, $3, $4)
      RETURNING id, restaurant_id, display_name, table_token, created_at, updated_at`,
-    [tableToken, tableId]
+    [tableId, restaurantId, displayName.trim(), tableToken]
   );
-
-  return mapRow(updateResult.rows[0]);
+  return mapRow(insertResult.rows[0]);
 }
 
 /**

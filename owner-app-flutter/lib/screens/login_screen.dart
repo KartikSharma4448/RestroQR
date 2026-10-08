@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../ui/auth_layout.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../models/auth_models.dart';
@@ -55,115 +56,79 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authService = context.watch<AuthService>();
-
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Icon(
-                    Icons.restaurant_menu,
-                    size: 80,
-                    color: const Color(0xFFFF6D00),
+      body: AuthLayout(
+        title: 'Sign in to your restaurant',
+        child: AutofillGroup(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextFormField(
+                  controller: _identifierController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email or phone',
+                    prefixIcon: Icon(Icons.person_outline),
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'RestroQR',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFFFF6D00),
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Owner Login',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.grey[600],
-                        ),
-                  ),
-                  const SizedBox(height: 48),
-                  TextFormField(
-                    controller: _identifierController,
-                    decoration: const InputDecoration(
-                      labelText: 'Email or Phone',
-                      prefixIcon: Icon(Icons.person_outline),
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter your email or phone';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _passwordController,
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      border: const OutlineInputBorder(),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
+                  keyboardType: TextInputType.emailAddress,
+                  autofillHints: const [AutofillHints.username],
+                  textInputAction: TextInputAction.next,
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Enter your email or phone'
+                      : null,
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _passwordController,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      tooltip: _obscurePassword
+                          ? 'Show password'
+                          : 'Hide password',
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
                       ),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
                     ),
-                    obscureText: _obscurePassword,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your password';
-                      }
-                      return null;
-                    },
                   ),
-                  const SizedBox(height: 24),
-                  FilledButton(
-                    onPressed: authService.isLoading ? null : _handleLogin,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF6D00),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: authService.isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text(
-                            'Login',
-                            style: TextStyle(fontSize: 16),
+                  obscureText: _obscurePassword,
+                  autofillHints: const [AutofillHints.password],
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) {
+                    if (!authService.isLoading) _handleLogin();
+                  },
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Enter your password'
+                      : null,
+                ),
+                const SizedBox(height: 28),
+                FilledButton(
+                  onPressed: authService.isLoading ? null : _handleLogin,
+                  child: authService.isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
                           ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextButton(
-                    onPressed: () => context.go('/register'),
-                    child: const Text(
-                      "Don't have an account? Register",
-                      style: TextStyle(color: Color(0xFFFF6D00)),
-                    ),
-                  ),
-                ],
-              ),
+                        )
+                      : const Text('Sign in'),
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: authService.isLoading
+                      ? null
+                      : () => context.go('/register'),
+                  child: const Text('Create an owner account'),
+                ),
+              ],
             ),
           ),
         ),

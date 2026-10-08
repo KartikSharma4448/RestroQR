@@ -22,20 +22,19 @@ export default function CategorySection({ id, name, items }: CategorySectionProp
   if (items.length === 0) return null;
 
   return (
-    <section id={id} className="mb-10 scroll-mt-28">
+    <section id={id} className="menu-category">
       {/* Category header */}
-      <div className="mb-5 flex items-center gap-3">
-        <h2 className="text-xl font-black tracking-tight text-slate-800">
+      <div className="category-heading">
+        <h2>
           {name}
         </h2>
-        <div className="h-0.5 flex-1 bg-gradient-to-r from-slate-200 to-transparent" />
-        <span className="rounded-xl bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">
+        <span>
           {items.length}
         </span>
       </div>
 
       {/* Items grid */}
-      <div className="flex flex-col gap-5">
+      <div className="dish-grid">
         {items.map((item) => (
           <FoodItemCard
             key={item.id}

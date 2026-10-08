@@ -2,9 +2,11 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import '../ui/app_theme.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
+import '../services/qr_save_service.dart';
 
 class QrCodeScreen extends StatefulWidget {
   const QrCodeScreen({super.key});
@@ -17,6 +19,30 @@ class _QrCodeScreenState extends State<QrCodeScreen> {
   Uint8List? _qrBytes;
   bool _isLoading = true;
   String? _error;
+  bool _isSaving = false;
+
+  Future<void> _saveQr() async {
+    if (_isSaving || _qrBytes == null) return;
+    setState(() => _isSaving = true);
+    try {
+      final message = await QrSaveService.save(_qrBytes!, 'Restaurant');
+      if (mounted && message != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not save QR. Check device storage and retry.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
 
   @override
   void initState() {
@@ -33,6 +59,7 @@ class _QrCodeScreenState extends State<QrCodeScreen> {
     try {
       final apiService = context.read<ApiService>();
       final response = await apiService.getBytes('/owner/qr');
+      if (!mounted) return;
 
       if (response.data != null) {
         setState(() {
@@ -46,11 +73,13 @@ class _QrCodeScreenState extends State<QrCodeScreen> {
         });
       }
     } on DioException catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = _extractError(e);
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = 'Network error. Please check your connection.';
         _isLoading = false;
@@ -85,8 +114,6 @@ class _QrCodeScreenState extends State<QrCodeScreen> {
           onPressed: () => context.pop(),
         ),
         title: const Text('QR Code'),
-        backgroundColor: const Color(0xFFFF6D00),
-        foregroundColor: Colors.white,
       ),
       body: _buildBody(),
     );
@@ -117,7 +144,7 @@ class _QrCodeScreenState extends State<QrCodeScreen> {
                 icon: const Icon(Icons.refresh),
                 label: const Text('Retry'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF6D00),
+                  backgroundColor: AppColors.accent,
                 ),
               ),
             ],
@@ -133,22 +160,18 @@ class _QrCodeScreenState extends State<QrCodeScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              'Your Restaurant QR Code',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Customers can scan this to view your menu',
-              style: TextStyle(color: Colors.grey[600]),
+              'Restaurant QR',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 32),
             Container(
+              width: 280,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(8),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.1),
@@ -157,27 +180,28 @@ class _QrCodeScreenState extends State<QrCodeScreen> {
                   ),
                 ],
               ),
-              child: Image.memory(
-                _qrBytes!,
-                width: 280,
-                height: 280,
-                fit: BoxFit.contain,
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: Image.memory(_qrBytes!, fit: BoxFit.contain),
               ),
-            ),
-            const SizedBox(height: 32),
-            Text(
-              'Print this QR code and place it on your tables for customers to scan.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[600]),
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
-              onPressed: _loadQrCode,
+              onPressed: _isSaving ? null : _saveQr,
+              icon: _isSaving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.download),
+              label: Text(_isSaving ? 'Saving...' : 'Save QR Image'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _isSaving ? null : _loadQrCode,
               icon: const Icon(Icons.refresh),
               label: const Text('Refresh QR Code'),
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFFF6D00),
-              ),
             ),
           ],
         ),

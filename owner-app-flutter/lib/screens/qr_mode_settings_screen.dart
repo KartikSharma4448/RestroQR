@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import '../ui/app_theme.dart';
+import '../ui/owner_widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -43,7 +45,8 @@ class _QrModeSettingsScreenState extends State<QrModeSettingsScreen> {
         final restaurant = data['data'] is Map<String, dynamic>
             ? (data['data']['restaurant'] ?? data['data'])
             : data['data'];
-        final qrMode = restaurant['qrMode'] ?? restaurant['qr_mode'] ?? 'single';
+        final qrMode =
+            restaurant['qrMode'] ?? restaurant['qr_mode'] ?? 'single';
         setState(() {
           _isMultiMode = qrMode == 'multi';
           _isLoading = false;
@@ -132,9 +135,7 @@ class _QrModeSettingsScreenState extends State<QrModeSettingsScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFFF6D00),
-            ),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.accent),
             child: const Text('Confirm'),
           ),
         ],
@@ -173,8 +174,6 @@ class _QrModeSettingsScreenState extends State<QrModeSettingsScreen> {
           onPressed: () => context.pop(),
         ),
         title: const Text('QR Mode Settings'),
-        backgroundColor: const Color(0xFFFF6D00),
-        foregroundColor: Colors.white,
       ),
       body: _buildBody(),
     );
@@ -205,7 +204,7 @@ class _QrModeSettingsScreenState extends State<QrModeSettingsScreen> {
                 icon: const Icon(Icons.refresh),
                 label: const Text('Retry'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF6D00),
+                  backgroundColor: AppColors.accent,
                 ),
               ),
             ],
@@ -215,86 +214,25 @@ class _QrModeSettingsScreenState extends State<QrModeSettingsScreen> {
     }
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       children: [
-        Card(
-          elevation: 2,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.qr_code_2, color: const Color(0xFFFF6D00)),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'QR Code Mode',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Choose how QR codes work for your restaurant.',
-                  style: TextStyle(color: Colors.grey[600]),
-                ),
-                const SizedBox(height: 20),
-                SwitchListTile(
-                  title: const Text(
-                    'Multi-Table QR Mode',
-                    style: TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  subtitle: Text(
-                    _isMultiMode
-                        ? 'Each table has its own QR code for ordering'
-                        : 'Single QR code for the entire restaurant',
-                    style: TextStyle(color: Colors.grey[600]),
-                  ),
-                  value: _isMultiMode,
-                  onChanged: _isSaving ? null : _onModeToggle,
-                  activeColor: const Color(0xFFFF6D00),
-                  contentPadding: EdgeInsets.zero,
-                ),
-                if (_isSaving)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 12),
-                    child: LinearProgressIndicator(
-                      color: Color(0xFFFF6D00),
-                    ),
-                  ),
-              ],
-            ),
-          ),
+        const SectionHeading('Ordering'),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Table ordering'),
+          subtitle: Text(_isMultiMode ? 'Per-table QR' : 'Single menu QR'),
+          value: _isMultiMode,
+          onChanged: _isSaving ? null : _onModeToggle,
         ),
-        const SizedBox(height: 16),
-        Card(
-          elevation: 1,
-          color: Colors.blue[50],
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    _isMultiMode
-                        ? 'In multi-table mode, you can create individual QR codes for each table. Customers scan a table QR to place orders directly from their seat.'
-                        : 'In single mode, your restaurant has one QR code that shows the full menu. Switch to multi-table mode to enable table-wise ordering.',
-                    style: TextStyle(color: Colors.blue[800], fontSize: 13),
-                  ),
-                ),
-              ],
-            ),
+        if (_isSaving) const LinearProgressIndicator(),
+        const SizedBox(height: 20),
+        const Divider(),
+        if (_isMultiMode)
+          ActionRow(
+            icon: Icons.table_bar_outlined,
+            title: 'Tables',
+            onTap: () => context.push('/tables'),
           ),
-        ),
       ],
     );
   }

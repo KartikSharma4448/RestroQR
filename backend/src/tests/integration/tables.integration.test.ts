@@ -73,17 +73,6 @@ describe('Tables Integration Tests — Full request-response cycle', () => {
             id: tableId,
             restaurant_id: restaurantId,
             display_name: 'Table 1',
-            table_token: 'temp_placeholder',
-            created_at: new Date('2024-01-10'),
-            updated_at: new Date('2024-01-10'),
-          }],
-        })
-        // createTable: UPDATE token
-        .mockResolvedValueOnce({
-          rows: [{
-            id: tableId,
-            restaurant_id: restaurantId,
-            display_name: 'Table 1',
             table_token: 'encrypted-token-abc',
             created_at: new Date('2024-01-10'),
             updated_at: new Date('2024-01-10'),

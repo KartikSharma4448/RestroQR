@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import '../ui/app_theme.dart';
+import '../ui/owner_widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../models/restaurant_models.dart';
@@ -60,7 +62,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
   Future<void> _addCategory() async {
     final name = await _showNameDialog(title: 'Add Category');
-    if (name == null || name.trim().isEmpty) return;
+    if (!mounted || name == null || name.trim().isEmpty) return;
 
     setState(() => _isLoading = true);
     try {
@@ -85,7 +87,10 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
       title: 'Edit Category',
       initialValue: category.name,
     );
-    if (name == null || name.trim().isEmpty || name.trim() == category.name) {
+    if (!mounted ||
+        name == null ||
+        name.trim().isEmpty ||
+        name.trim() == category.name) {
       return;
     }
 
@@ -132,7 +137,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
       ),
     );
 
-    if (confirmed != true) return;
+    if (!mounted || confirmed != true) return;
 
     setState(() => _isLoading = true);
     try {
@@ -203,9 +208,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(controller.text),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFFF6D00),
-            ),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.accent),
             child: const Text('Save'),
           ),
         ],
@@ -232,20 +235,16 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
-        ),
-        title: const Text('Categories'),
-        backgroundColor: const Color(0xFFFF6D00),
-        foregroundColor: Colors.white,
+        automaticallyImplyLeading: false,
+        title: const Text('Menu categories'),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addCategory,
-        backgroundColor: const Color(0xFFFF6D00),
+        backgroundColor: AppColors.accent,
         child: const Icon(Icons.add, color: Colors.white),
       ),
       body: _buildBody(),
+      bottomNavigationBar: const OwnerNavigation(selected: 2),
     );
   }
 
@@ -273,23 +272,11 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     }
 
     if (_categories.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.category_outlined, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              'No categories yet',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Tap + to add your first category',
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-          ],
-        ),
+      return OwnerEmptyState(
+        icon: Icons.category_outlined,
+        title: 'No categories yet',
+        action: 'Add category',
+        onAction: _addCategory,
       );
     }
 
@@ -312,19 +299,23 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
+                  tooltip: 'Edit category',
                   icon: const Icon(Icons.edit_outlined),
                   onPressed: () => _editCategory(category),
-                  color: const Color(0xFFFF6D00),
+                  color: AppColors.accent,
                 ),
                 IconButton(
+                  tooltip: 'Delete category',
                   icon: const Icon(Icons.delete_outline),
                   onPressed: () => _deleteCategory(category),
                   color: Colors.red,
                 ),
               ],
             ),
-            onTap: () => context.push('/categories/${category.id}/items',
-                extra: category.name),
+            onTap: () => context.push(
+              '/categories/${category.id}/items',
+              extra: category.name,
+            ),
           ),
         );
       },

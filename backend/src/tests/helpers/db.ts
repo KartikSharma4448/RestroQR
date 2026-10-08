@@ -4,15 +4,21 @@ let testPool: Pool | null = null;
 
 /**
  * Get or create a connection pool for the test database.
- * Uses DATABASE_URL from environment or falls back to a test-specific default.
+ * Only connects to an explicitly named test database, never DATABASE_URL.
  */
 export function getTestPool(): Pool {
   if (!testPool) {
+    const connectionString = process.env.TEST_DATABASE_URL ||
+      'postgresql://postgres:postgres@127.0.0.1:5432/restroqr_test';
+    const databaseName = decodeURIComponent(new URL(connectionString).pathname.slice(1));
+    if (!/(^|[_-])test($|[_-])/i.test(databaseName)) {
+      throw new Error('Refusing destructive tests: TEST_DATABASE_URL must name a test database.');
+    }
+    if (process.env.DATABASE_URL && connectionString === process.env.DATABASE_URL && process.env.NODE_ENV !== 'test') {
+      throw new Error('Refusing destructive tests against the application database.');
+    }
     const config: PoolConfig = {
-      connectionString:
-        process.env.TEST_DATABASE_URL ||
-        process.env.DATABASE_URL ||
-        'postgresql://postgres:postgres@localhost:5432/restroqr_test',
+      connectionString,
       max: 5,
     };
     testPool = new Pool(config);

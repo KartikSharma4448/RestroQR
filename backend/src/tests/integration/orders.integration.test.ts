@@ -71,7 +71,7 @@ describe('Orders Integration Tests — Order Placement Flow', () => {
       // 1. Validate restaurant exists and qr_mode is 'multi'
       (mockPool.query as jest.Mock)
         .mockResolvedValueOnce({
-          rows: [{ id: restaurantId, qr_mode: 'multi' }],
+          rows: [{ id: restaurantId, qr_mode: 'multi', status: 'active', owner_status: 'active' }],
         })
         // 2. Validate table exists
         .mockResolvedValueOnce({
@@ -81,14 +81,14 @@ describe('Orders Integration Tests — Order Placement Flow', () => {
         .mockResolvedValueOnce({
           rows: [
             {
-              id: 'item-001',
+              id: '10000000-0000-4000-8000-000000000001',
               name: 'Butter Chicken',
               price: '200.00',
               is_available: true,
               restaurant_id: restaurantId,
             },
             {
-              id: 'item-002',
+              id: '10000000-0000-4000-8000-000000000002',
               name: 'Naan',
               price: '50.00',
               is_available: true,
@@ -128,7 +128,7 @@ describe('Orders Integration Tests — Order Placement Flow', () => {
           rows: [{
             id: 'oi-001',
             order_id: 'order-001-uuid',
-            food_item_id: 'item-001',
+            food_item_id: '10000000-0000-4000-8000-000000000001',
             item_name: 'Butter Chicken',
             item_price: '200.00',
             quantity: 2,
@@ -140,7 +140,7 @@ describe('Orders Integration Tests — Order Placement Flow', () => {
           rows: [{
             id: 'oi-002',
             order_id: 'order-001-uuid',
-            food_item_id: 'item-002',
+            food_item_id: '10000000-0000-4000-8000-000000000002',
             item_name: 'Naan',
             item_price: '50.00',
             quantity: 1,
@@ -154,8 +154,8 @@ describe('Orders Integration Tests — Order Placement Flow', () => {
         .send({
           tableToken: validTableToken,
           items: [
-            { itemId: 'item-001', quantity: 2 },
-            { itemId: 'item-002', quantity: 1 },
+            { itemId: '10000000-0000-4000-8000-000000000001', quantity: 2 },
+            { itemId: '10000000-0000-4000-8000-000000000002', quantity: 1 },
           ],
         });
 
@@ -190,7 +190,7 @@ describe('Orders Integration Tests — Order Placement Flow', () => {
         .post('/api/public/orders')
         .send({
           tableToken: 'invalid-garbage-token',
-          items: [{ itemId: 'item-001', quantity: 1 }],
+          items: [{ itemId: '10000000-0000-4000-8000-000000000001', quantity: 1 }],
         });
 
       expect(res.status).toBe(404);
@@ -208,7 +208,7 @@ describe('Orders Integration Tests — Order Placement Flow', () => {
       (mockPool.query as jest.Mock)
         // 1. Restaurant exists with multi mode
         .mockResolvedValueOnce({
-          rows: [{ id: restaurantId, qr_mode: 'multi' }],
+          rows: [{ id: restaurantId, qr_mode: 'multi', status: 'active', owner_status: 'active' }],
         })
         // 2. Table exists
         .mockResolvedValueOnce({
@@ -218,7 +218,7 @@ describe('Orders Integration Tests — Order Placement Flow', () => {
         .mockResolvedValueOnce({
           rows: [
             {
-              id: 'item-001',
+              id: '10000000-0000-4000-8000-000000000001',
               name: 'Butter Chicken',
               price: '200.00',
               is_available: false,
@@ -231,7 +231,7 @@ describe('Orders Integration Tests — Order Placement Flow', () => {
         .post('/api/public/orders')
         .send({
           tableToken: validTableToken,
-          items: [{ itemId: 'item-001', quantity: 1 }],
+          items: [{ itemId: '10000000-0000-4000-8000-000000000001', quantity: 1 }],
         });
 
       expect(res.status).toBe(400);
@@ -261,17 +261,13 @@ describe('Orders Integration Tests — Order Placement Flow', () => {
         .post('/api/public/orders')
         .send({
           tableToken: validTableToken,
-          items: [{ itemId: 'item-001', quantity: 0 }],
+          items: [{ itemId: '10000000-0000-4000-8000-000000000001', quantity: 0 }],
         });
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('VALIDATION_ERROR');
-      expect(res.body.error.details).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ field: 'quantity', message: 'Quantity must be at least 1' }),
-        ])
-      );
+      expect(res.body.error.message).toContain('integer quantity between 1 and 100');
     });
 
     it('should return 400 for items not belonging to the restaurant', async () => {
@@ -280,7 +276,7 @@ describe('Orders Integration Tests — Order Placement Flow', () => {
       (mockPool.query as jest.Mock)
         // 1. Restaurant exists with multi mode
         .mockResolvedValueOnce({
-          rows: [{ id: restaurantId, qr_mode: 'multi' }],
+          rows: [{ id: restaurantId, qr_mode: 'multi', status: 'active', owner_status: 'active' }],
         })
         // 2. Table exists
         .mockResolvedValueOnce({
@@ -290,7 +286,7 @@ describe('Orders Integration Tests — Order Placement Flow', () => {
         .mockResolvedValueOnce({
           rows: [
             {
-              id: 'item-001',
+              id: '10000000-0000-4000-8000-000000000001',
               name: 'Butter Chicken',
               price: '200.00',
               is_available: true,
@@ -303,7 +299,7 @@ describe('Orders Integration Tests — Order Placement Flow', () => {
         .post('/api/public/orders')
         .send({
           tableToken: validTableToken,
-          items: [{ itemId: 'item-001', quantity: 1 }],
+          items: [{ itemId: '10000000-0000-4000-8000-000000000001', quantity: 1 }],
         });
 
       expect(res.status).toBe(400);
@@ -318,14 +314,14 @@ describe('Orders Integration Tests — Order Placement Flow', () => {
       (mockPool.query as jest.Mock)
         // Restaurant exists but qr_mode is 'single'
         .mockResolvedValueOnce({
-          rows: [{ id: restaurantId, qr_mode: 'single' }],
+          rows: [{ id: restaurantId, qr_mode: 'single', status: 'active', owner_status: 'active' }],
         });
 
       const res = await supertest(app)
         .post('/api/public/orders')
         .send({
           tableToken: validTableToken,
-          items: [{ itemId: 'item-001', quantity: 1 }],
+          items: [{ itemId: '10000000-0000-4000-8000-000000000001', quantity: 1 }],
         });
 
       expect(res.status).toBe(404);
@@ -350,7 +346,7 @@ describe('Orders Integration Tests — Order Placement Flow', () => {
         (mockPool.query as jest.Mock)
           // 1. Restaurant exists with multi mode
           .mockResolvedValueOnce({
-            rows: [{ id: restaurantId, qr_mode: 'multi' }],
+            rows: [{ id: restaurantId, qr_mode: 'multi', status: 'active', owner_status: 'active' }],
           })
           // 2. Table exists
           .mockResolvedValueOnce({
@@ -360,7 +356,7 @@ describe('Orders Integration Tests — Order Placement Flow', () => {
           .mockResolvedValueOnce({
             rows: [
               {
-                id: 'item-001',
+                id: '10000000-0000-4000-8000-000000000001',
                 name: 'Butter Chicken',
                 price: '200.00',
                 is_available: true,
@@ -397,7 +393,7 @@ describe('Orders Integration Tests — Order Placement Flow', () => {
             rows: [{
               id: `oi-00${orderNum}`,
               order_id: `order-00${orderNum}-uuid`,
-              food_item_id: 'item-001',
+              food_item_id: '10000000-0000-4000-8000-000000000001',
               item_name: 'Butter Chicken',
               item_price: '200.00',
               quantity: 1,
@@ -413,7 +409,7 @@ describe('Orders Integration Tests — Order Placement Flow', () => {
         .post('/api/public/orders')
         .send({
           tableToken: validTableToken,
-          items: [{ itemId: 'item-001', quantity: 1 }],
+          items: [{ itemId: '10000000-0000-4000-8000-000000000001', quantity: 1 }],
         });
 
       expect(res1.status).toBe(201);
@@ -430,7 +426,7 @@ describe('Orders Integration Tests — Order Placement Flow', () => {
         .post('/api/public/orders')
         .send({
           tableToken: validTableToken,
-          items: [{ itemId: 'item-001', quantity: 1 }],
+          items: [{ itemId: '10000000-0000-4000-8000-000000000001', quantity: 1 }],
         });
 
       expect(res2.status).toBe(201);

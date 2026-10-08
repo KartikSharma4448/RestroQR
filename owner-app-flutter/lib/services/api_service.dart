@@ -2,7 +2,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://restroqr-api.onrender.com/api';
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://restroqr-api.onrender.com/api',
+  );
   static const String _tokenKey = 'auth_token';
 
   late final Dio _dio;
@@ -49,7 +52,10 @@ class ApiService {
     return await _storage.read(key: _tokenKey);
   }
 
-  Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) async {
+  Future<Response> get(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+  }) async {
     return _dio.get(path, queryParameters: queryParameters);
   }
 
@@ -70,9 +76,6 @@ class ApiService {
   }
 
   Future<Response> getBytes(String path) async {
-    return _dio.get(
-      path,
-      options: Options(responseType: ResponseType.bytes),
-    );
+    return _dio.get(path, options: Options(responseType: ResponseType.bytes));
   }
 }

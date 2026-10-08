@@ -62,11 +62,12 @@ export default async function TableMenuPage({ params }: TableMenuPageProps) {
   );
 
   return (
-    <main className="mx-auto min-h-screen max-w-3xl overflow-x-hidden bg-slate-50/60 shadow-lg border-x border-slate-100">
+    <main className="customer-menu">
       <MenuHeader
         name={restaurant.name}
         logo_url={restaurant.logo_url}
         cover_image_url={restaurant.cover_image_url}
+        ordering
       />
 
       <TableMenuContent

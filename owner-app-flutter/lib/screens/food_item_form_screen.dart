@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import '../ui/app_theme.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../models/restaurant_models.dart';
@@ -73,6 +74,12 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
             'badge': _badge,
           },
         );
+        if (_isAvailable != widget.existingItem!.isAvailable) {
+          await apiService.patch(
+            '/owner/items/${widget.existingItem!.id}/availability',
+            data: {'isAvailable': _isAvailable},
+          );
+        }
       } else {
         await apiService.post(
           '/owner/items',
@@ -92,7 +99,9 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              _isEditing ? 'Item updated successfully' : 'Item added successfully',
+              _isEditing
+                  ? 'Item updated successfully'
+                  : 'Item added successfully',
             ),
             backgroundColor: Colors.green,
           ),
@@ -146,8 +155,6 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
           onPressed: () => context.pop(),
         ),
         title: Text(_isEditing ? 'Edit Item' : 'Add Item'),
-        backgroundColor: const Color(0xFFFF6D00),
-        foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -190,8 +197,9 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
                   prefixIcon: Icon(Icons.currency_rupee),
                   border: OutlineInputBorder(),
                 ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Price is required';
@@ -212,30 +220,29 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
               const SizedBox(height: 24),
               Text(
                 'Food Type',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w500),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildBadgeOption(
-                      label: 'Veg',
-                      value: 'veg',
-                      color: Colors.green,
-                    ),
+              SegmentedButton<String>(
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(
+                    value: 'veg',
+                    label: Text('Veg'),
+                    icon: Icon(Icons.circle, size: 12),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildBadgeOption(
-                      label: 'Non-Veg',
-                      value: 'non_veg',
-                      color: Colors.red,
-                    ),
+                  ButtonSegment(
+                    value: 'non_veg',
+                    label: Text('Non-veg'),
+                    icon: Icon(Icons.circle_outlined, size: 12),
                   ),
                 ],
+                selected: {_badge},
+                onSelectionChanged: _isLoading
+                    ? null
+                    : (values) => setState(() => _badge = values.first),
               ),
               if (_isEditing) ...[
                 const SizedBox(height: 24),
@@ -250,7 +257,7 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
                   onChanged: (value) {
                     setState(() => _isAvailable = value);
                   },
-                  activeTrackColor: const Color(0xFFFF6D00),
+                  activeTrackColor: AppColors.accent,
                   contentPadding: EdgeInsets.zero,
                 ),
               ],
@@ -258,7 +265,7 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
               FilledButton(
                 onPressed: _isLoading ? null : _handleSubmit,
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF6D00),
+                  backgroundColor: AppColors.accent,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 child: _isLoading
@@ -277,60 +284,6 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBadgeOption({
-    required String label,
-    required String value,
-    required Color color,
-  }) {
-    final isSelected = _badge == value;
-    return InkWell(
-      onTap: () => setState(() => _badge = value),
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: isSelected ? color : Colors.grey[300]!,
-            width: isSelected ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(12),
-          color: isSelected ? color.withValues(alpha: 0.05) : null,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 16,
-              height: 16,
-              decoration: BoxDecoration(
-                border: Border.all(color: color, width: 2),
-                borderRadius: BorderRadius.circular(3),
-              ),
-              child: Center(
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? color : null,
-              ),
-            ),
-          ],
         ),
       ),
     );

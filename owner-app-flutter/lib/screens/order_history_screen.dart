@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import '../ui/app_theme.dart';
 import 'package:provider/provider.dart';
 
 import '../models/order_model.dart';
@@ -125,10 +126,13 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   List<OrderData> _filterByDateRange(List<OrderData> orders) {
     if (_selectedDateRange == null) return orders;
     final start = _selectedDateRange!.start;
-    final end = _selectedDateRange!.end
-        .add(const Duration(hours: 23, minutes: 59, seconds: 59));
+    final end = _selectedDateRange!.end.add(
+      const Duration(hours: 23, minutes: 59, seconds: 59),
+    );
     return orders.where((order) {
-      return order.createdAt.isAfter(start.subtract(const Duration(seconds: 1))) &&
+      return order.createdAt.isAfter(
+            start.subtract(const Duration(seconds: 1)),
+          ) &&
           order.createdAt.isBefore(end.add(const Duration(seconds: 1)));
     }).toList();
   }
@@ -171,9 +175,9 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-                  primary: const Color(0xFFFF6D00),
-                ),
+            colorScheme: Theme.of(
+              context,
+            ).colorScheme.copyWith(primary: AppColors.accent),
           ),
           child: child!,
         );
@@ -205,11 +209,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Order History'),
-        backgroundColor: const Color(0xFFFF6D00),
-        foregroundColor: Colors.white,
-      ),
+      appBar: AppBar(title: const Text('Order History')),
       body: Column(
         children: [
           _buildFilters(),
@@ -240,8 +240,10 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
             initialValue: _selectedStatus,
             decoration: InputDecoration(
               labelText: 'Filter by Status',
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -275,8 +277,8 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                     style: const TextStyle(fontSize: 13),
                   ),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFFF6D00),
-                    side: const BorderSide(color: Color(0xFFFF6D00)),
+                    foregroundColor: AppColors.accent,
+                    side: const BorderSide(color: AppColors.accent),
                   ),
                 ),
               ),
@@ -314,10 +316,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
               const SizedBox(height: 16),
               Text(_error!, textAlign: TextAlign.center),
               const SizedBox(height: 16),
-              FilledButton(
-                onPressed: _loadOrders,
-                child: const Text('Retry'),
-              ),
+              FilledButton(onPressed: _loadOrders, child: const Text('Retry')),
             ],
           ),
         ),
@@ -331,14 +330,17 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.receipt_long_outlined,
-                  size: 64, color: Colors.grey[400]),
+              Icon(
+                Icons.receipt_long_outlined,
+                size: 64,
+                color: Colors.grey[400],
+              ),
               const SizedBox(height: 16),
               Text(
                 'No orders found',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.grey[600],
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
               ),
               const SizedBox(height: 8),
               Text(
@@ -376,7 +378,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   Widget _buildOrderCard(OrderData order) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 1,
+      elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -418,7 +420,9 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
               const SizedBox(height: 8),
               const Divider(height: 1),
               const SizedBox(height: 8),
-              ...order.items.take(3).map(
+              ...order.items
+                  .take(3)
+                  .map(
                     (item) => Padding(
                       padding: const EdgeInsets.only(bottom: 4),
                       child: Row(
@@ -467,7 +471,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
-                    color: Color(0xFFFF6D00),
+                    color: AppColors.accent,
                   ),
                 ),
               ],
@@ -492,7 +496,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         _formatStatus(status),

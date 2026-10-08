@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: restroqr
-      POSTGRES_PASSWORD: restroqr_secret
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a private POSTGRES_PASSWORD}
       POSTGRES_DB: restroqr
     # Port exposed only for local development debugging.
     # Remove or comment out in production deployments.
@@ -35,8 +35,8 @@ services:
     env_file:
       - ./backend/.env.docker
     environment:
-      DATABASE_URL: postgresql://restroqr:restroqr_secret@postgres:5432/restroqr
-      TABLE_TOKEN_SECRET: ${TABLE_TOKEN_SECRET:-CHANGE_ME_generate_a_32_byte_hex_key}
+      DATABASE_URL: postgresql://restroqr:${POSTGRES_PASSWORD:?Set a private POSTGRES_PASSWORD}@postgres:5432/restroqr
+      TABLE_TOKEN_SECRET: ${TABLE_TOKEN_SECRET:?Set an independent random TABLE_TOKEN_SECRET}
     networks:
       - restroqr-network
 

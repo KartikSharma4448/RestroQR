@@ -9,7 +9,7 @@ export default function PrivacyPolicyPage() {
   return (
     <main className="mx-auto min-h-screen max-w-3xl bg-white px-6 py-12">
       <h1 className="text-3xl font-bold text-gray-900">Privacy Policy</h1>
-      <p className="mt-2 text-sm text-gray-500">Last updated: June 28, 2026</p>
+      <p className="mt-2 text-sm text-gray-500">Last updated: October 8, 2026</p>
 
       <div className="mt-8 space-y-6 text-gray-700 leading-relaxed">
         <section>
@@ -30,9 +30,12 @@ export default function PrivacyPolicyPage() {
           </ul>
           <p className="mt-3"><strong>For Customers (Website Users):</strong></p>
           <ul className="mt-2 list-disc pl-6 space-y-1">
-            <li>No personal information is collected from customers</li>
+            <li>Order contents, table identifiers and order status are stored to process orders</li>
             <li>No account creation is required to view menus or place orders</li>
-            <li>Orders are associated with table identifiers, not personal identity</li>
+            <li>If supplied with an order, customer name and phone number are stored with that order</li>
+            <li>The restaurant-wide public order board shows order references, table labels, customer initials and status; it does not show full names, phone numbers, totals or order contents</li>
+            <li>Anyone with the restaurant QR link can view this board. Its recent-order display window is not a database deletion or retention policy</li>
+            <li>Public loyalty lookup is disabled until customer identity verification is available</li>
           </ul>
         </section>
 
@@ -49,9 +52,10 @@ export default function PrivacyPolicyPage() {
         <section>
           <h2 className="text-xl font-semibold text-gray-900">4. Data Storage and Security</h2>
           <p className="mt-2">
-            Your data is stored securely on cloud servers. We use industry-standard encryption 
-            (AES-256-GCM for table tokens, bcrypt for passwords, HTTPS for all communications) 
-            to protect your information. We do not sell or share your personal data with third parties.
+            The application uses bcrypt for password hashing and AES-256-GCM for table tokens.
+            Production deployments should use HTTPS and restricted database access.
+            Authorized restaurant owners can access their order records. Hosting, image storage
+            and notification providers process data needed to operate those services.
           </p>
         </section>
 
@@ -61,7 +65,7 @@ export default function PrivacyPolicyPage() {
           <ul className="mt-2 list-disc pl-6 space-y-1">
             <li><strong>Firebase Cloud Messaging</strong> — for push notifications to restaurant owners</li>
             <li><strong>Cloudinary</strong> — for image storage (restaurant logos, food item images)</li>
-            <li><strong>Neon PostgreSQL</strong> — for database hosting</li>
+            <li><strong>PostgreSQL hosting provider</strong> — for account, menu and order storage; the provider depends on the deployment</li>
           </ul>
         </section>
 

@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { fetchMenu, ApiError } from '@/lib/api';
 import MenuHeader from '@/components/MenuHeader';
 import MenuContent from '@/components/MenuContent';
+import LiveOrderBoard from '@/components/LiveOrderBoard';
 
 // Always fetch fresh menu data, never serve stale cache
 export const revalidate = 0;
@@ -56,13 +57,14 @@ export default async function MenuPage({ params }: MenuPageProps) {
   );
 
   return (
-    <main className="mx-auto min-h-screen max-w-3xl overflow-x-hidden bg-slate-50/60 shadow-lg border-x border-slate-100">
+    <main className="customer-menu">
       <MenuHeader
         name={restaurant.name}
         logo_url={restaurant.logo_url}
         cover_image_url={restaurant.cover_image_url}
       />
 
+      <LiveOrderBoard restaurantToken={token} />
       <MenuContent categories={sortedCategories} />
     </main>
   );

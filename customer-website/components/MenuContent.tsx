@@ -55,10 +55,10 @@ function MenuContentInner({ categories }: MenuContentProps) {
   }, [filteredCategories]);
 
   return (
-    <div className="px-4 pt-4 pb-28 bg-slate-50/30">
+    <div className="menu-content">
       {/* Search, Filter, and Category Nav — sticky */}
-      <div className="sticky top-0 z-20 -mx-4 mb-8 border-b border-slate-100 bg-white/95 px-4 py-4 backdrop-blur-md shadow-md shadow-slate-100/50">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+      <div className="menu-toolbar">
+        <div className="menu-tools">
           <div className="flex-1">
             <SearchBar value={searchTerm} onChange={setSearchTerm} />
           </div>
@@ -67,13 +67,13 @@ function MenuContentInner({ categories }: MenuContentProps) {
         
         {/* Horizontal Category Nav */}
         {!noResults && navCategories.length > 0 && (
-          <div className="mt-4 -mx-4 border-t border-slate-100/80 pt-3">
+          <div className="menu-nav-wrap">
             <CategoryNav categories={navCategories} />
           </div>
         )}
 
         {/* Item count */}
-        <p className="mt-2 text-[11px] font-bold text-slate-400">
+        <p className="menu-count">
           {hasActiveFilters
             ? `${filteredCategories.reduce((acc, c) => acc + c.items.length, 0)} of ${totalItems} items matching`
             : `${totalItems} items • ${categories.length} categories`}
@@ -94,7 +94,7 @@ function MenuContentInner({ categories }: MenuContentProps) {
 
       {/* No results message */}
       {noResults && (
-        <div className="flex flex-col items-center py-20 bg-white rounded-3xl border border-slate-100 p-8 shadow-sm">
+        <div className="menu-empty">
           <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-slate-50">
             <svg className="h-10 w-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -107,7 +107,7 @@ function MenuContentInner({ categories }: MenuContentProps) {
 
       {/* Empty menu */}
       {!hasActiveFilters && categories.length === 0 && (
-        <div className="flex flex-col items-center py-20 bg-white rounded-3xl border border-slate-100 p-8 shadow-sm">
+        <div className="menu-empty">
           <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-amber-50">
             <svg className="h-10 w-10 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
@@ -119,9 +119,9 @@ function MenuContentInner({ categories }: MenuContentProps) {
       )}
 
       {/* Footer branding */}
-      <div className="mt-12 border-t border-slate-100 pt-8 text-center">
+      <div className="menu-footer">
         <p className="text-xs text-slate-400 font-medium">
-          Powered by <span className="font-extrabold text-orange-500 tracking-tight">RestroQR</span>
+          Powered by <span className="brand-accent">RestroQR</span>
         </p>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import '../ui/app_theme.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../models/restaurant_models.dart';
@@ -148,8 +149,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           onPressed: () => context.pop(),
         ),
         title: Text(_isEditing ? 'Edit Profile' : 'Setup Profile'),
-        backgroundColor: const Color(0xFFFF6D00),
-        foregroundColor: Colors.white,
       ),
       body: _isLoading && _nameController.text.isEmpty
           ? const Center(child: CircularProgressIndicator())
@@ -160,22 +159,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Icon(
-                      Icons.store,
-                      size: 64,
-                      color: const Color(0xFFFF6D00),
-                    ),
-                    const SizedBox(height: 8),
                     Text(
-                      _isEditing
-                          ? 'Update your restaurant details'
-                          : 'Tell us about your restaurant',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Colors.grey[600],
-                          ),
+                      'Restaurant details',
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
                     TextFormField(
                       controller: _nameController,
                       decoration: const InputDecoration(
@@ -241,7 +229,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                     FilledButton(
                       onPressed: _isLoading ? null : _handleSubmit,
                       style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF6D00),
+                        backgroundColor: AppColors.accent,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                       child: _isLoading

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../ui/auth_layout.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../models/auth_models.dart';
@@ -69,151 +70,116 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final authService = context.watch<AuthService>();
-
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
+          tooltip: 'Back to sign in',
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/login'),
         ),
-        title: const Text('Create Account'),
+        title: const Text('Owner account'),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Icon(
-                  Icons.restaurant_menu,
-                  size: 64,
-                  color: const Color(0xFFFF6D00),
+      body: AuthLayout(
+        title: 'Create your account',
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextFormField(
+                controller: _nameController,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.name],
+                decoration: const InputDecoration(
+                  labelText: 'Full name',
+                  prefixIcon: Icon(Icons.person_outline),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Join RestroQR',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? 'Name is required'
+                    : null,
+              ),
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.email],
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  prefixIcon: Icon(Icons.email_outlined),
                 ),
-                const SizedBox(height: 32),
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Full Name *',
-                    prefixIcon: Icon(Icons.person_outline),
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Name is required';
-                    }
-                    return null;
-                  },
+                validator: (value) =>
+                    value != null &&
+                        value.trim().isNotEmpty &&
+                        !RegExp(
+                          r'^[^\s@]+@[^\s@]+\.[^\s@]+$',
+                        ).hasMatch(value.trim())
+                    ? 'Enter a valid email'
+                    : null,
+              ),
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.telephoneNumber],
+                decoration: const InputDecoration(
+                  labelText: 'Phone',
+                  prefixIcon: Icon(Icons.phone_outlined),
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    prefixIcon: Icon(Icons.email_outlined),
-                    border: OutlineInputBorder(),
-                    helperText: 'At least one of email or phone is required',
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value != null && value.trim().isNotEmpty) {
-                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                          .hasMatch(value.trim())) {
-                        return 'Enter a valid email';
-                      }
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _phoneController,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone',
-                    prefixIcon: Icon(Icons.phone_outlined),
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.phone,
-                  validator: (value) {
-                    if (value != null && value.trim().isNotEmpty) {
-                      if (value.trim().length > 20) {
-                        return 'Phone number is too long';
-                      }
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: InputDecoration(
-                    labelText: 'Password *',
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
+                validator: (value) =>
+                    value != null &&
+                        value.trim().isNotEmpty &&
+                        !RegExp(r'^\d{10}$').hasMatch(value.trim())
+                    ? 'Enter a 10-digit phone number'
+                    : null,
+              ),
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: _passwordController,
+                obscureText: _obscurePassword,
+                autofillHints: const [AutofillHints.newPassword],
+                textInputAction: TextInputAction.done,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    tooltip: _obscurePassword
+                        ? 'Show password'
+                        : 'Hide password',
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
                     ),
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
                   ),
-                  obscureText: _obscurePassword,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Password is required';
-                    }
-                    if (value.length < 8) {
-                      return 'Password must be at least 8 characters';
-                    }
-                    return null;
-                  },
                 ),
-                const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: authService.isLoading ? null : _handleRegister,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF6D00),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: authService.isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text(
-                          'Register',
-                          style: TextStyle(fontSize: 16),
+                validator: (value) => value == null || value.length < 8
+                    ? 'Use at least 8 characters'
+                    : null,
+              ),
+              const SizedBox(height: 28),
+              FilledButton(
+                onPressed: authService.isLoading ? null : _handleRegister,
+                child: authService.isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
                         ),
-                ),
-                const SizedBox(height: 16),
-                TextButton(
-                  onPressed: () => context.go('/login'),
-                  child: const Text(
-                    'Already have an account? Login',
-                    style: TextStyle(color: Color(0xFFFF6D00)),
-                  ),
-                ),
-              ],
-            ),
+                      )
+                    : const Text('Create account'),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => context.go('/login'),
+                child: const Text('Already registered? Sign in'),
+              ),
+            ],
           ),
         ),
       ),

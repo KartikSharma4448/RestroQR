@@ -19,7 +19,6 @@ export default function LoyaltyStarsCard({ restaurantToken }: LoyaltyStarsCardPr
   const [name, setName] = useState<string | null>(null);
   const [data, setData] = useState<LoyaltyData | null>(null);
   const [loading, setLoading] = useState(false);
-  const [isPromptOpen, setIsPromptOpen] = useState(false);
 
   const fetchLoyalty = useCallback(async (clientPhone: string) => {
     setLoading(true);
@@ -74,8 +73,8 @@ export default function LoyaltyStarsCard({ restaurantToken }: LoyaltyStarsCardPr
 
   if (!phone) {
     return (
-      <div className="mx-4 mb-6 rounded-3xl border border-dashed border-amber-300 bg-amber-50/20 p-5 text-center">
-        <h3 className="text-sm font-black text-amber-800">🎁 Star Visit Rewards</h3>
+      <div className="loyalty-invitation">
+        <h3 className="text-sm font-semibold text-teal-800">Star Visit Rewards</h3>
         <p className="mt-1 text-xs text-slate-500 font-semibold leading-relaxed">
           Order 6 times from our tables & unlock a free treat on us!
         </p>
@@ -89,7 +88,7 @@ export default function LoyaltyStarsCard({ restaurantToken }: LoyaltyStarsCardPr
             // Force page reload to trigger modal
             window.location.reload();
           }}
-          className="mt-3.5 inline-flex items-center justify-center rounded-xl bg-amber-500 px-5 py-2.5 text-xs font-black text-white shadow-md shadow-amber-500/10 hover:bg-amber-600 active:scale-95 transition-all"
+          className="mt-3.5 inline-flex items-center justify-center rounded-md bg-teal-700 px-5 py-2.5 text-xs font-semibold text-white shadow-md  hover:bg-teal-800 active:scale-95 transition-all"
         >
           Join Rewards Program
         </button>
@@ -103,28 +102,28 @@ export default function LoyaltyStarsCard({ restaurantToken }: LoyaltyStarsCardPr
   const displayName = name || (data ? data.name : '') || 'Guest';
 
   return (
-    <div className="mx-4 mb-6 overflow-hidden rounded-3xl border border-slate-100 bg-white p-5 shadow-lg shadow-slate-100/50">
+    <div className="loyalty-progress">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Loyalty Progress</h3>
-          <p className="text-base font-black text-slate-800 mt-0.5">Welcome back, {displayName}! 👋</p>
+          <h3 className="text-xs font-semibold text-slate-400 uppercase ">Loyalty Progress</h3>
+          <p className="text-base font-semibold text-slate-800 mt-0.5">Welcome back, {displayName}!</p>
         </div>
-        <div className="rounded-xl bg-slate-50 border border-slate-200/50 px-2.5 py-1 text-center">
-          <p className="text-[10px] font-black text-slate-400 uppercase">Visits</p>
-          <p className="text-sm font-black text-slate-800">{totalVisits}</p>
+        <div className="rounded-md bg-slate-50 border border-slate-200/50 px-2.5 py-1 text-center">
+          <p className="text-[10px] font-semibold text-slate-400 uppercase">Visits</p>
+          <p className="text-sm font-semibold text-slate-800">{totalVisits}</p>
         </div>
       </div>
 
       {/* Stars row */}
-      <div className="mt-5 flex items-center justify-between gap-2.5 rounded-2xl bg-slate-50/50 border border-slate-100 p-4">
+      <div className="loyalty-stars">
         {[1, 2, 3, 4, 5, 6].map((starIndex) => {
           const isFilled = starIndex <= activeStars;
           return (
             <div
               key={starIndex}
-              className={`flex h-10 w-10 items-center justify-center rounded-xl border text-xl transition-all duration-300 ${
+              className={`flex h-10 w-10 items-center justify-center rounded-md border text-xl transition-all duration-300 ${
                 isFilled
-                  ? 'bg-amber-500 border-amber-600 text-white shadow-md shadow-amber-500/20 scale-105'
+                  ? 'bg-teal-700 border-amber-600 text-white shadow-md  scale-105'
                   : 'bg-slate-100/50 border-slate-200/50 text-slate-300'
               }`}
             >
@@ -139,14 +138,14 @@ export default function LoyaltyStarsCard({ restaurantToken }: LoyaltyStarsCardPr
         {loading && !data ? (
           <p className="text-xs font-bold text-slate-400">Syncing visits...</p>
         ) : isRewardUnlocked ? (
-          <div className="rounded-2xl bg-emerald-50 border border-emerald-100/80 p-3 animate-pulse">
-            <p className="text-xs font-black text-emerald-800 leading-normal">
-              🎉 <strong>Loyalty Reward Unlocked!</strong> Claim your free reward item at the billing counter! 🥤🍰
+          <div className="rounded-md bg-emerald-50 border border-emerald-100/80 p-3 animate-pulse">
+            <p className="text-xs font-semibold text-emerald-800 leading-normal">
+              <strong>Loyalty Reward Unlocked!</strong> Claim your free reward item at the billing counter!
             </p>
           </div>
         ) : (
           <p className="text-xs text-slate-500 font-bold leading-normal">
-            ⭐️ {activeStars} of 6 visits completed. {6 - activeStars} more order completions to unlock your free treat!
+            {activeStars} of 6 visits completed. {6 - activeStars} more order completions to unlock your free treat!
           </p>
         )}
       </div>

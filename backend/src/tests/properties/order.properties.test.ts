@@ -93,7 +93,7 @@ describe('Property 6: Order Item Validation (All-or-Nothing)', () => {
           // Restaurant exists with qr_mode 'multi'
           (mockPool.query as jest.Mock).mockImplementation((query: string) => {
             if (query.includes('FROM restaurants')) {
-              return Promise.resolve({ rows: [{ id: restaurantId, qr_mode: 'multi' }] });
+              return Promise.resolve({ rows: [{ id: restaurantId, qr_mode: 'multi', status: 'active', owner_status: 'active' }] });
             }
             if (query.includes('FROM tables')) {
               return Promise.resolve({ rows: [{ id: tableId }] });
@@ -154,7 +154,7 @@ describe('Property 6: Order Item Validation (All-or-Nothing)', () => {
 
           (mockPool.query as jest.Mock).mockImplementation((query: string) => {
             if (query.includes('FROM restaurants')) {
-              return Promise.resolve({ rows: [{ id: restaurantId, qr_mode: 'multi' }] });
+              return Promise.resolve({ rows: [{ id: restaurantId, qr_mode: 'multi', status: 'active', owner_status: 'active' }] });
             }
             if (query.includes('FROM tables')) {
               return Promise.resolve({ rows: [{ id: tableId }] });
@@ -226,7 +226,7 @@ describe('Property 7: Order Total Integrity', () => {
 
           (mockPool.query as jest.Mock).mockImplementation((query: string) => {
             if (query.includes('FROM restaurants')) {
-              return Promise.resolve({ rows: [{ id: restaurantId, qr_mode: 'multi' }] });
+              return Promise.resolve({ rows: [{ id: restaurantId, qr_mode: 'multi', status: 'active', owner_status: 'active' }] });
             }
             if (query.includes('FROM tables')) {
               return Promise.resolve({ rows: [{ id: tableId }] });
@@ -340,7 +340,7 @@ describe('Property 8: Initial Order State Invariant', () => {
 
           (mockPool.query as jest.Mock).mockImplementation((query: string) => {
             if (query.includes('FROM restaurants')) {
-              return Promise.resolve({ rows: [{ id: restaurantId, qr_mode: 'multi' }] });
+              return Promise.resolve({ rows: [{ id: restaurantId, qr_mode: 'multi', status: 'active', owner_status: 'active' }] });
             }
             if (query.includes('FROM tables')) {
               return Promise.resolve({ rows: [{ id: tableId }] });
@@ -457,7 +457,7 @@ describe('Property 9: Multiple Orders Per Table', () => {
 
             (mockPool.query as jest.Mock).mockImplementation((query: string) => {
               if (query.includes('FROM restaurants')) {
-                return Promise.resolve({ rows: [{ id: restaurantId, qr_mode: 'multi' }] });
+                return Promise.resolve({ rows: [{ id: restaurantId, qr_mode: 'multi', status: 'active', owner_status: 'active' }] });
               }
               if (query.includes('FROM tables')) {
                 return Promise.resolve({ rows: [{ id: tableId }] });

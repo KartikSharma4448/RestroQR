@@ -1,17 +1,33 @@
-# restroqr_owner
+# RestroQR Owner App
 
-A new Flutter project.
+Flutter Android client for restaurant owners: menu editing, tables, QR codes, incoming
+orders, earnings and history.
 
-## Getting Started
+## Development
 
-This project is a starting point for a Flutter application.
+Requires Flutter compatible with Dart 3.11.1 and an Android SDK.
 
-A few resources to get you started if this is your first Flutter project:
+```powershell
+flutter pub get
+adb reverse tcp:3000 tcp:3000
+flutter run --dart-define=API_BASE_URL=http://127.0.0.1:3000/api
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+The device loopback address uses adb port forwarding; see
+[setup](../docs/SETUP.md) for loopback binding and networking.
+Production builds should target an HTTPS API and include `/api`.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Checks
+
+```powershell
+flutter analyze
+flutter test
+flutter build apk --debug
+```
+
+Firebase configuration, release signing, legacy Android QR saving and real-device
+notifications require separate validation.
+Never commit `key.properties`, a signing keystore or private service credentials.
+
+[Architecture](../TECHNICAL.md) | [Deployment](../DEPLOYMENT.md) |
+[Verification](../docs/VERIFICATION.md)

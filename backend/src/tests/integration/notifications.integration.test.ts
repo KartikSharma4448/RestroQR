@@ -239,9 +239,9 @@ describe('Notifications Integration Tests', () => {
           }) // INSERT order
           .mockResolvedValueOnce({
             rows: [{
-              id: 'item-001',
+              id: '10000000-0000-4000-8000-000000000001',
               order_id: 'order-001',
-              food_item_id: 'food-001',
+              food_item_id: '20000000-0000-4000-8000-000000000001',
               item_name: 'Butter Chicken',
               item_price: '225.00',
               quantity: 2,
@@ -256,13 +256,13 @@ describe('Notifications Integration Tests', () => {
       // Mock pool.query for the non-transactional queries
       (mockPool.query as jest.Mock)
         // restaurant lookup (qr_mode check)
-        .mockResolvedValueOnce({ rows: [{ id: restaurantId, qr_mode: 'multi' }] })
+        .mockResolvedValueOnce({ rows: [{ id: restaurantId, qr_mode: 'multi', status: 'active', owner_status: 'active' }] })
         // table exists check
         .mockResolvedValueOnce({ rows: [{ id: tableId }] })
         // food items lookup
         .mockResolvedValueOnce({
           rows: [{
-            id: 'food-001',
+            id: '20000000-0000-4000-8000-000000000001',
             name: 'Butter Chicken',
             price: '225.00',
             is_available: true,
@@ -278,7 +278,7 @@ describe('Notifications Integration Tests', () => {
         .post('/api/public/orders')
         .send({
           tableToken: 'valid-encrypted-token',
-          items: [{ itemId: 'food-001', quantity: 2 }],
+          items: [{ itemId: '20000000-0000-4000-8000-000000000001', quantity: 2 }],
         });
 
       expect(res.status).toBe(201);
@@ -339,9 +339,9 @@ describe('Notifications Integration Tests', () => {
           }) // INSERT order
           .mockResolvedValueOnce({
             rows: [{
-              id: 'item-002',
+              id: '10000000-0000-4000-8000-000000000002',
               order_id: 'order-002',
-              food_item_id: 'food-002',
+              food_item_id: '20000000-0000-4000-8000-000000000002',
               item_name: 'Naan',
               item_price: '50.00',
               quantity: 3,
@@ -356,13 +356,13 @@ describe('Notifications Integration Tests', () => {
       // Mock pool.query for the non-transactional queries
       (mockPool.query as jest.Mock)
         // restaurant lookup (qr_mode check)
-        .mockResolvedValueOnce({ rows: [{ id: restaurantId, qr_mode: 'multi' }] })
+        .mockResolvedValueOnce({ rows: [{ id: restaurantId, qr_mode: 'multi', status: 'active', owner_status: 'active' }] })
         // table exists check
         .mockResolvedValueOnce({ rows: [{ id: tableId }] })
         // food items lookup
         .mockResolvedValueOnce({
           rows: [{
-            id: 'food-002',
+            id: '20000000-0000-4000-8000-000000000002',
             name: 'Naan',
             price: '50.00',
             is_available: true,
@@ -381,7 +381,7 @@ describe('Notifications Integration Tests', () => {
         .post('/api/public/orders')
         .send({
           tableToken: 'valid-encrypted-token',
-          items: [{ itemId: 'food-002', quantity: 3 }],
+          items: [{ itemId: '20000000-0000-4000-8000-000000000002', quantity: 3 }],
         });
 
       // Order creation should succeed despite notification failure
@@ -429,7 +429,7 @@ describe('Notifications Integration Tests', () => {
             rows: [{
               id: 'item-003',
               order_id: 'order-003',
-              food_item_id: 'food-003',
+              food_item_id: '20000000-0000-4000-8000-000000000003',
               item_name: 'Rice',
               item_price: '100.00',
               quantity: 1,
@@ -444,13 +444,13 @@ describe('Notifications Integration Tests', () => {
       // Mock pool.query for the non-transactional queries
       (mockPool.query as jest.Mock)
         // restaurant lookup
-        .mockResolvedValueOnce({ rows: [{ id: restaurantId, qr_mode: 'multi' }] })
+        .mockResolvedValueOnce({ rows: [{ id: restaurantId, qr_mode: 'multi', status: 'active', owner_status: 'active' }] })
         // table exists check
         .mockResolvedValueOnce({ rows: [{ id: tableId }] })
         // food items lookup
         .mockResolvedValueOnce({
           rows: [{
-            id: 'food-003',
+            id: '20000000-0000-4000-8000-000000000003',
             name: 'Rice',
             price: '100.00',
             is_available: true,
@@ -466,7 +466,7 @@ describe('Notifications Integration Tests', () => {
         .post('/api/public/orders')
         .send({
           tableToken: 'valid-encrypted-token',
-          items: [{ itemId: 'food-003', quantity: 1 }],
+          items: [{ itemId: '20000000-0000-4000-8000-000000000003', quantity: 1 }],
         });
 
       // Order creation succeeds

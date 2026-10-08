@@ -25,7 +25,7 @@ import publicLoyaltyRoutes from './routes/public/loyalty';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT || 3000);
 
 // Security middleware
 app.use(helmet());
@@ -44,7 +44,7 @@ if (!allowedOrigins.includes(customerSiteOrigin)) {
 
 // In development, allow localhost if no origins configured
 if (allowedOrigins.length === 0 || process.env.NODE_ENV !== 'production') {
-  const devOrigins = ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:8080'];
+  const devOrigins = ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001', 'http://localhost:8080', 'http://127.0.0.1:5173', 'http://127.0.0.1:3001'];
   for (const origin of devOrigins) {
     if (!allowedOrigins.includes(origin)) {
       allowedOrigins.push(origin);
@@ -92,8 +92,10 @@ app.use(notFound);
 // Global error handler (must be the LAST middleware)
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`RestroQR API server running on port ${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1', () => {
+    console.log(`RestroQR API server running on port ${PORT}`);
+  });
+}
 
 export default app;

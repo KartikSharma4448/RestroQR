@@ -30,7 +30,8 @@ router.get(
       }
 
       const restaurantToken = result.rows[0].restaurant_token;
-      const url = `https://restro-qr-peach.vercel.app/r/${restaurantToken}`;
+      const baseUrl = (process.env.CUSTOMER_BASE_URL || 'https://restro-qr-peach.vercel.app').replace(/\/$/, '');
+      const url = `${baseUrl}/r/${restaurantToken}`;
 
       // Generate QR code PNG buffer (minimum 300x300px)
       let pngBuffer: Buffer;

@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import '../ui/app_theme.dart';
+import '../ui/owner_widgets.dart';
 import 'package:provider/provider.dart';
 
 import '../models/order_model.dart';
@@ -19,7 +21,7 @@ class OrdersScreen extends StatefulWidget {
 class _OrdersScreenState extends State<OrdersScreen>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   late final TabController _tabController;
-  late final OwnerApiService _ownerApiService;
+  late OwnerApiService _ownerApiService;
 
   Timer? _pollTimer;
   bool _isLoading = true;
@@ -185,23 +187,24 @@ class _OrdersScreenState extends State<OrdersScreen>
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Orders'),
-        backgroundColor: const Color(0xFFFF6D00),
-        foregroundColor: Colors.white,
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.white,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
+          labelColor: AppColors.accent,
+          unselectedLabelColor: AppColors.muted,
+          indicatorColor: AppColors.accent,
           tabs: [
             Tab(text: 'Pending (${_pendingOrders.length})'),
             Tab(text: 'Accepted (${_acceptedOrders.length})'),
@@ -211,6 +214,7 @@ class _OrdersScreenState extends State<OrdersScreen>
         ),
       ),
       body: _buildBody(),
+      bottomNavigationBar: const OwnerNavigation(selected: 1),
     );
   }
 
@@ -228,10 +232,7 @@ class _OrdersScreenState extends State<OrdersScreen>
             const SizedBox(height: 16),
             Text(_error!, textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _loadOrders,
-              child: const Text('Retry'),
-            ),
+            FilledButton(onPressed: _loadOrders, child: const Text('Retry')),
           ],
         ),
       );
@@ -254,7 +255,11 @@ class _OrdersScreenState extends State<OrdersScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.receipt_long_outlined, size: 64, color: Colors.grey[300]),
+            Icon(
+              Icons.receipt_long_outlined,
+              size: 64,
+              color: Colors.grey[300],
+            ),
             const SizedBox(height: 16),
             Text(
               'No ${_statusLabel(status).toLowerCase()} orders',
@@ -278,7 +283,7 @@ class _OrdersScreenState extends State<OrdersScreen>
   Widget _buildOrderCard(OrderData order) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
+      elevation: 0,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -298,10 +303,12 @@ class _OrdersScreenState extends State<OrdersScreen>
                   ),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFF6D00).withValues(alpha: 0.1),
+                    color: AppColors.accent.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -309,7 +316,7 @@ class _OrdersScreenState extends State<OrdersScreen>
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFFFF6D00),
+                      color: AppColors.accent,
                     ),
                   ),
                 ),
@@ -326,7 +333,11 @@ class _OrdersScreenState extends State<OrdersScreen>
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.person_pin_rounded, size: 16, color: Colors.grey[600]),
+                    Icon(
+                      Icons.person_pin_rounded,
+                      size: 16,
+                      color: Colors.grey[600],
+                    ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -379,7 +390,7 @@ class _OrdersScreenState extends State<OrdersScreen>
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
-                    color: Color(0xFFFF6D00),
+                    color: AppColors.accent,
                   ),
                 ),
               ],
@@ -406,9 +417,7 @@ class _OrdersScreenState extends State<OrdersScreen>
               onPressed: () => _updateStatus(order, 'accepted'),
               icon: const Icon(Icons.check, size: 18),
               label: const Text('Accept'),
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.green,
-              ),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.accent),
             ),
           ),
         );
@@ -419,7 +428,9 @@ class _OrdersScreenState extends State<OrdersScreen>
               onPressed: () => _cancelOrder(order),
               icon: const Icon(Icons.close, size: 18),
               label: const Text('Cancel'),
-              style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFB42334),
+              ),
             ),
           ),
         );
@@ -432,9 +443,7 @@ class _OrdersScreenState extends State<OrdersScreen>
               onPressed: () => _updateStatus(order, 'completed'),
               icon: const Icon(Icons.done_all, size: 18),
               label: const Text('Complete'),
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.blue,
-              ),
+              style: FilledButton.styleFrom(backgroundColor: Colors.blue),
             ),
           ),
         );
@@ -458,9 +467,7 @@ class _OrdersScreenState extends State<OrdersScreen>
               onPressed: () => _updateStatus(order, 'payment_received'),
               icon: const Icon(Icons.payments_outlined, size: 18),
               label: const Text('Mark Paid'),
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFFF6D00),
-              ),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.accent),
             ),
           ),
         );

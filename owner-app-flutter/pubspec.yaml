@@ -1,5 +1,5 @@
 name: restroqr_owner
-description: "A new Flutter project."
+description: "RestroQR Android owner app for digital menus, table QR codes and order management."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -47,6 +47,8 @@ dependencies:
   firebase_messaging: ^15.2.4
 
 dev_dependencies:
+  integration_test:
+    sdk: flutter
   flutter_test:
     sdk: flutter
 
@@ -67,6 +69,16 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/brand-mark.png
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/roboto-regular.ttf
+        - asset: assets/fonts/roboto-medium.ttf
+          weight: 500
+        - asset: assets/fonts/roboto-bold.ttf
+          weight: 700
 
   # To add assets to your application, add an assets section, like this:
   # assets:

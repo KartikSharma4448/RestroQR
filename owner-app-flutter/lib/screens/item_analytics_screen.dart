@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import '../ui/app_theme.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -139,11 +140,7 @@ class _ItemAnalyticsScreenState extends State<ItemAnalyticsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Item Analytics'),
-        backgroundColor: const Color(0xFFFF6D00),
-        foregroundColor: Colors.white,
-      ),
+      appBar: AppBar(title: const Text('Item Analytics')),
       body: _buildBody(),
     );
   }
@@ -158,10 +155,7 @@ class _ItemAnalyticsScreenState extends State<ItemAnalyticsScreen> {
             const SizedBox(height: 16),
             Text(_error!, textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _loadData,
-              child: const Text('Retry'),
-            ),
+            FilledButton(onPressed: _loadData, child: const Text('Retry')),
           ],
         ),
       );
@@ -197,52 +191,46 @@ class _ItemAnalyticsScreenState extends State<ItemAnalyticsScreen> {
           children: [
             Text(
               _formatMonth(_selectedMonth),
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w600),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
-            const Icon(Icons.calendar_month, color: Color(0xFFFF6D00)),
+            const Icon(Icons.calendar_month, color: AppColors.accent),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPeriodToggle() {
-    return Row(
-      children: [
-        Text(
-          'Period',
-          style: Theme.of(context)
-              .textTheme
-              .titleMedium
-              ?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        const Spacer(),
-        SegmentedButton<String>(
+  Widget _buildPeriodToggle() => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text('Sales period', style: Theme.of(context).textTheme.titleMedium),
+      const SizedBox(height: 12),
+      SizedBox(
+        width: double.infinity,
+        child: SegmentedButton<String>(
+          showSelectedIcon: false,
           segments: _periods
               .map(
-                (p) => ButtonSegment(
-                  value: p,
+                (period) => ButtonSegment(
+                  value: period,
                   label: Text(
-                    p[0].toUpperCase() + p.substring(1),
-                    style: const TextStyle(fontSize: 12),
+                    {
+                      'daily': 'Day',
+                      'weekly': 'Week',
+                      'monthly': 'Month',
+                    }[period]!,
                   ),
                 ),
               )
               .toList(),
           selected: {_selectedPeriod},
-          onSelectionChanged: (selected) {
-            _onPeriodChanged(selected.first);
-          },
-          style: ButtonStyle(
-            visualDensity: VisualDensity.compact,
-          ),
+          onSelectionChanged: (selection) => _onPeriodChanged(selection.first),
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
 
   Widget _buildItemList() {
     if (_isLoading) {
@@ -320,7 +308,7 @@ class _ItemAnalyticsScreenState extends State<ItemAnalyticsScreen> {
       case 3:
         return Colors.brown[400]!;
       default:
-        return const Color(0xFFFF6D00);
+        return AppColors.accent;
     }
   }
 }

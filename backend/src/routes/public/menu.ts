@@ -1,7 +1,15 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { getPublicMenu } from '../../services/publicMenuService';
+import { getPublicOrderBoard } from '../../services/publicOrderBoardService';
 
 const router = Router();
+
+router.get('/order-board/:token', async (req: Request, res: Response, next: NextFunction) => {
+  res.setHeader('Cache-Control', 'no-store');
+  try {
+    res.json({ success: true, data: await getPublicOrderBoard(req.params.token as string) });
+  } catch (error) { next(error); }
+});
 
 /**
  * GET /api/public/menu/:token

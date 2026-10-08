@@ -18,7 +18,7 @@ const router = Router();
  */
 router.post('/orders', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { tableToken, items, customerName, customerPhone } = req.body;
+    const { tableToken, items, customerName, customerPhone } = req.body ?? {};
 
     // Validate required fields
     if (!tableToken || typeof tableToken !== 'string') {
@@ -27,14 +27,25 @@ router.post('/orders', async (req: Request, res: Response, next: NextFunction) =
       ]);
     }
 
-    if (!items || !Array.isArray(items) || items.length === 0) {
+    if (!Array.isArray(items) || items.length === 0 || items.length > 50) {
       throw new ValidationError('At least one item is required', [
-        { field: 'items', message: 'At least one item is required' },
+        { field: 'items', message: 'Provide between 1 and 50 items' },
       ]);
     }
 
     // Optional customerPhone validation
-    if (customerPhone) {
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (items.some((item: unknown) => !item || typeof item !== 'object' ||
+      !('itemId' in item) || typeof item.itemId !== 'string' || !uuid.test(item.itemId) ||
+      !('quantity' in item) || !Number.isSafeInteger(item.quantity) ||
+      (item.quantity as number) < 1 || (item.quantity as number) > 100)) {
+      throw new ValidationError('Each item needs a valid UUID and integer quantity between 1 and 100');
+    }
+    if (customerName !== undefined && (typeof customerName !== 'string' || customerName.trim().length > 100)) {
+      throw new ValidationError('Customer name must be a string of at most 100 characters');
+    }
+    if (customerPhone !== undefined) {
+      if (typeof customerPhone !== 'string') throw new ValidationError('Phone must be exactly 10 digits');
       const phoneDigits = customerPhone.trim();
       if (!/^\d{10}$/.test(phoneDigits)) {
         throw new ValidationError('Phone must be exactly 10 digits', [

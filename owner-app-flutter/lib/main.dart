@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'models/restaurant_models.dart';
+import 'ui/app_theme.dart';
 import 'services/api_service.dart';
 import 'services/auth_service.dart';
 import 'services/notification_handler.dart';
@@ -64,33 +65,7 @@ class RestroQRApp extends StatelessWidget {
           return MaterialApp.router(
             title: 'RestroQR Owner',
             debugShowCheckedModeBanner: false,
-            theme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: const Color(0xFFFF6D00),
-                primary: const Color(0xFFFF6D00),
-              ),
-              useMaterial3: true,
-              inputDecorationTheme: InputDecorationTheme(
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(
-                    color: Color(0xFFFF6D00),
-                    width: 2,
-                  ),
-                ),
-              ),
-              filledButtonTheme: FilledButtonThemeData(
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF6D00),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-            ),
+            theme: ownerTheme(),
             routerConfig: router,
           );
         },
@@ -107,7 +82,8 @@ class RestroQRApp extends StatelessWidget {
       redirect: (context, state) async {
         await authService.checkAuthStatus();
         final isAuthenticated = authService.isAuthenticated;
-        final isAuthRoute = state.matchedLocation == '/login' ||
+        final isAuthRoute =
+            state.matchedLocation == '/login' ||
             state.matchedLocation == '/register';
 
         if (!isAuthenticated && !isAuthRoute) {

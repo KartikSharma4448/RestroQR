@@ -220,6 +220,7 @@ describe('GET /api/public/menu/:token', () => {
         name: 'Tasty Bites',
         logoUrl: 'https://cdn.example.com/logo.png',
         coverImageUrl: 'https://cdn.example.com/cover.png',
+        qrMode: 'single',
       });
 
       expect(result.categories).toHaveLength(2);

@@ -29,7 +29,7 @@ android {
     }
 
     signingConfigs {
-        create("release") {
+        if (keystorePropertiesFile.exists()) create("release") {
             keyAlias = keystoreProperties["keyAlias"] as String
             keyPassword = keystoreProperties["keyPassword"] as String
             storeFile = file(keystoreProperties["storeFile"] as String)
@@ -47,7 +47,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 }

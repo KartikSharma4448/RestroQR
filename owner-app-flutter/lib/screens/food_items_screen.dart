@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import '../ui/app_theme.dart';
+import '../ui/owner_widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../models/restaurant_models.dart';
@@ -38,8 +40,9 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
 
     try {
       final apiService = context.read<ApiService>();
-      final response =
-          await apiService.get('/owner/categories/${widget.categoryId}/items');
+      final response = await apiService.get(
+        '/owner/categories/${widget.categoryId}/items',
+      );
       final data = response.data;
 
       if (data['success'] == true) {
@@ -106,7 +109,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       ),
     );
 
-    if (confirmed != true) return;
+    if (!mounted || confirmed != true) return;
 
     setState(() => _isLoading = true);
     try {
@@ -150,15 +153,13 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
           onPressed: () => context.pop(),
         ),
         title: Text(widget.categoryName ?? 'Food Items'),
-        backgroundColor: const Color(0xFFFF6D00),
-        foregroundColor: Colors.white,
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push(
           '/categories/${widget.categoryId}/items/add',
           extra: widget.categoryName,
         ),
-        backgroundColor: const Color(0xFFFF6D00),
+        backgroundColor: AppColors.accent,
         child: const Icon(Icons.add, color: Colors.white),
       ),
       body: _buildBody(),
@@ -179,32 +180,20 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
             const SizedBox(height: 16),
             Text(_error!, textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _loadItems,
-              child: const Text('Retry'),
-            ),
+            FilledButton(onPressed: _loadItems, child: const Text('Retry')),
           ],
         ),
       );
     }
 
     if (_items.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.fastfood_outlined, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              'No items yet',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Tap + to add food items',
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-          ],
+      return OwnerEmptyState(
+        icon: Icons.restaurant_menu,
+        title: 'No dishes yet',
+        action: 'Add dish',
+        onAction: () => context.push(
+          '/categories/${widget.categoryId}/items/add',
+          extra: widget.categoryName,
         ),
       );
     }
@@ -262,8 +251,9 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       color: item.isAvailable ? null : Colors.grey,
-                      decoration:
-                          item.isAvailable ? null : TextDecoration.lineThrough,
+                      decoration: item.isAvailable
+                          ? null
+                          : TextDecoration.lineThrough,
                     ),
                   ),
                   if (item.description != null &&
@@ -273,10 +263,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
                       item.description!,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
                   const SizedBox(height: 4),
@@ -284,7 +271,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
                     '₹${item.price.toStringAsFixed(2)}',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFFFF6D00),
+                      color: AppColors.accent,
                     ),
                   ),
                 ],
@@ -296,12 +283,13 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
                 Switch(
                   value: item.isAvailable,
                   onChanged: (_) => _toggleAvailability(item),
-                  activeTrackColor: const Color(0xFFFF6D00),
+                  activeTrackColor: AppColors.accent,
                 ),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
+                      tooltip: 'Edit dish',
                       icon: const Icon(Icons.edit_outlined, size: 20),
                       onPressed: () => context.push(
                         '/categories/${widget.categoryId}/items/edit/${item.id}',
@@ -310,17 +298,22 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
                           'item': item,
                         },
                       ),
-                      color: const Color(0xFFFF6D00),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                      color: AppColors.accent,
+                      constraints: const BoxConstraints(
+                        minWidth: 44,
+                        minHeight: 44,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     IconButton(
+                      tooltip: 'Delete dish',
                       icon: const Icon(Icons.delete_outline, size: 20),
                       onPressed: () => _deleteItem(item),
                       color: Colors.red,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                      constraints: const BoxConstraints(
+                        minWidth: 44,
+                        minHeight: 44,
+                      ),
                     ),
                   ],
                 ),

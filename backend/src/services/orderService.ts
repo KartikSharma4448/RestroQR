@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import pool from '../config/database';
-import { ValidationError, NotFoundError } from '../errors';
+import { ValidationError, NotFoundError, ConflictError } from '../errors';
 import { decryptTableToken } from './tableService';
 
 // --- Types ---
@@ -133,19 +133,30 @@ export async function createOrder(
   customerPhone?: string
 ): Promise<OrderRecord & { items: OrderItemRecord[] }> {
   // Validate items array is not empty
-  if (!items || items.length === 0) {
+  if (!Array.isArray(items) || items.length === 0 || items.length > 50) {
     throw new ValidationError('At least one item is required', [
-      { field: 'items', message: 'At least one item is required' },
+      { field: 'items', message: 'Provide between 1 and 50 items' },
     ]);
   }
 
   // Validate quantities
   for (const item of items) {
-    if (!item.quantity || item.quantity < 1) {
+    if (!item || typeof item !== 'object' || typeof item.itemId !== 'string' || !item.itemId.trim() ||
+        !Number.isSafeInteger(item.quantity) || item.quantity < 1 || item.quantity > 100) {
       throw new ValidationError('Validation failed', [
-        { field: 'quantity', message: 'Quantity must be at least 1' },
+        { field: 'items', message: 'Each item needs an ID and integer quantity between 1 and 100' },
       ]);
     }
+  }
+  if (new Set(items.map(item => item.itemId)).size !== items.length) {
+    throw new ValidationError('Duplicate item IDs are not allowed');
+  }
+
+  if (customerName !== undefined && (typeof customerName !== 'string' || customerName.trim().length > 100)) {
+    throw new ValidationError('Customer name must be a string of at most 100 characters');
+  }
+  if (customerPhone !== undefined && (typeof customerPhone !== 'string' || !/^\d{10}$/.test(customerPhone.trim()))) {
+    throw new ValidationError('Phone must be exactly 10 digits');
   }
 
   // Decrypt table token — throws NotFoundError('Menu not found') on failure
@@ -153,10 +164,12 @@ export async function createOrder(
 
   // Validate restaurant exists and qr_mode is 'multi'
   const restaurantResult = await pool.query(
-    'SELECT id, qr_mode FROM restaurants WHERE id = $1',
+    `SELECT r.id, r.qr_mode, r.status, o.status AS owner_status
+     FROM restaurants r JOIN owners o ON o.id = r.owner_id WHERE r.id = $1`,
     [restaurantId]
   );
-  if (restaurantResult.rows.length === 0 || restaurantResult.rows[0].qr_mode !== 'multi') {
+  if (restaurantResult.rows.length === 0 || restaurantResult.rows[0].qr_mode !== 'multi' ||
+      restaurantResult.rows[0].status !== 'active' || restaurantResult.rows[0].owner_status !== 'active') {
     throw new NotFoundError('Menu not found');
   }
 
@@ -220,11 +233,19 @@ export async function createOrder(
   }
 
   // Calculate total server-side
-  let total = 0;
+  let totalCents = 0;
   for (const item of items) {
     const found = foundItems.get(item.itemId)!;
-    total += parseFloat(found.price) * item.quantity;
+    const priceCents = Math.round(Number(found.price) * 100);
+    if (!Number.isSafeInteger(priceCents) || priceCents < 0) {
+      throw new ValidationError('Item price is invalid');
+    }
+    totalCents += priceCents * item.quantity;
   }
+  if (!Number.isSafeInteger(totalCents) || totalCents > 9999999999) {
+    throw new ValidationError('Order total exceeds the supported limit');
+  }
+  const total = totalCents / 100;
 
   // Generate unique order_ref with retry logic
   let orderRef = generateOrderRef();
@@ -397,11 +418,14 @@ export async function updateOrderStatus(
 
   // Set the corresponding timestamp column
   const timestampCol = STATUS_TIMESTAMP_MAP[newStatus];
-  await pool.query(
+  const transitionResult = await pool.query(
     `UPDATE orders SET status = $1, ${timestampCol} = NOW(), updated_at = NOW()
-     WHERE id = $2 AND restaurant_id = $3`,
-    [newStatus, orderId, restaurantId]
+     WHERE id = $2 AND restaurant_id = $3 AND status = $4`,
+    [newStatus, orderId, restaurantId, currentStatus]
   );
+  if (transitionResult.rowCount === 0) {
+    throw new ConflictError('Order status changed. Refresh and try again.');
+  }
 
   // Re-fetch with table display name
   const updatedResult = await pool.query(
@@ -410,8 +434,8 @@ export async function updateOrderStatus(
             o.cancelled_at, o.updated_at, o.customer_name, o.customer_phone, t.display_name
      FROM orders o
      LEFT JOIN tables t ON o.table_id = t.id
-     WHERE o.id = $1`,
-    [orderId]
+     WHERE o.id = $1 AND o.restaurant_id = $2`,
+    [orderId, restaurantId]
   );
 
   return mapOrderRow(updatedResult.rows[0]);
@@ -463,11 +487,14 @@ export async function cancelOrder(
   }
 
   // Set status to cancelled with timestamp
-  await pool.query(
+  const cancellationResult = await pool.query(
     `UPDATE orders SET status = 'cancelled', cancelled_at = NOW(), updated_at = NOW()
-     WHERE id = $1 AND restaurant_id = $2`,
-    [orderId, restaurantId]
+     WHERE id = $1 AND restaurant_id = $2 AND status = $3`,
+    [orderId, restaurantId, currentStatus]
   );
+  if (cancellationResult.rowCount === 0) {
+    throw new ConflictError('Order status changed. Refresh and try again.');
+  }
 
   // Re-fetch with table display name
   const updatedResult = await pool.query(
@@ -476,8 +503,8 @@ export async function cancelOrder(
             o.cancelled_at, o.updated_at, o.customer_name, o.customer_phone, t.display_name
      FROM orders o
      LEFT JOIN tables t ON o.table_id = t.id
-     WHERE o.id = $1`,
-    [orderId]
+     WHERE o.id = $1 AND o.restaurant_id = $2`,
+    [orderId, restaurantId]
   );
 
   return mapOrderRow(updatedResult.rows[0]);

@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../models/restaurant_models.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../ui/app_theme.dart';
+import '../ui/owner_widgets.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -34,6 +36,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       final apiService = context.read<ApiService>();
       final response = await apiService.get('/owner/restaurant');
+      if (!mounted) return;
       final data = response.data;
 
       if (data['success'] == true && data['data'] != null) {
@@ -54,6 +57,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         });
       }
     } on DioException catch (e) {
+      if (!mounted) return;
       if (e.response?.statusCode == 404) {
         setState(() {
           _noRestaurant = true;
@@ -66,6 +70,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = 'Network error. Please check your connection.';
         _isLoading = false;
@@ -92,232 +97,245 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dashboard'),
-        backgroundColor: const Color(0xFFFF6D00),
-        foregroundColor: Colors.white,
+        automaticallyImplyLeading: false,
+        title: const BrandHeading(compact: true),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await context.read<AuthService>().logout();
-              if (mounted) context.go('/login');
+            tooltip: 'Refresh',
+            icon: const Icon(Icons.refresh),
+            onPressed: _isLoading ? null : _loadRestaurant,
+          ),
+          PopupMenuButton<String>(
+            tooltip: 'Account',
+            icon: const Icon(Icons.account_circle_outlined),
+            onSelected: (value) async {
+              if (value == 'profile') {
+                await context.push('/profile-setup');
+                if (mounted) _loadRestaurant();
+              } else {
+                await context.read<AuthService>().logout();
+                if (context.mounted) context.go('/login');
+              }
             },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'profile',
+                child: Text('Restaurant profile'),
+              ),
+              PopupMenuItem(value: 'logout', child: Text('Sign out')),
+            ],
           ),
         ],
       ),
+      bottomNavigationBar: _restaurant == null
+          ? null
+          : const OwnerNavigation(selected: 0),
       body: _buildBody(),
     );
   }
 
   Widget _buildBody() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
+    if (_isLoading) return const Center(child: CircularProgressIndicator());
     if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
-            const SizedBox(height: 16),
-            Text(_error!, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _loadRestaurant,
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
+      return OwnerEmptyState(
+        icon: Icons.wifi_off_outlined,
+        title: 'Unable to load restaurant',
+        message: _error,
+        action: 'Try again',
+        onAction: _loadRestaurant,
       );
     }
-
     if (_noRestaurant) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+      return OwnerEmptyState(
+        icon: Icons.storefront_outlined,
+        title: 'Your restaurant',
+        action: 'Create restaurant',
+        onAction: () async {
+          await context.push('/profile-setup');
+          if (mounted) _loadRestaurant();
+        },
+      );
+    }
+    final restaurant = _restaurant!;
+    return RefreshIndicator(
+      onRefresh: _loadRestaurant,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+        children: [
+          Text(
+            'OVERVIEW',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: AppColors.muted,
+              letterSpacing: 0,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            restaurant.name,
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 8),
+          Row(
             children: [
-              Icon(
-                Icons.store_outlined,
-                size: 80,
-                color: Colors.grey[400],
+              const Icon(
+                Icons.location_on_outlined,
+                size: 16,
+                color: AppColors.muted,
               ),
-              const SizedBox(height: 24),
-              Text(
-                'Welcome to RestroQR!',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Set up your restaurant profile to get started.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey[600], fontSize: 16),
-              ),
-              const SizedBox(height: 32),
-              FilledButton.icon(
-                onPressed: () => context.go('/profile-setup'),
-                icon: const Icon(Icons.add_business),
-                label: const Text('Setup Profile'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF6D00),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 16,
-                  ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  restaurant.address,
+                  style: const TextStyle(color: AppColors.muted),
                 ),
               ),
             ],
           ),
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadRestaurant,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Card(
-            elevation: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.restaurant, color: const Color(0xFFFF6D00)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _restaurant!.name,
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleLarge
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Icon(Icons.location_on_outlined,
-                          size: 18, color: Colors.grey[600]),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _restaurant!.address,
-                          style: TextStyle(color: Colors.grey[700]),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(Icons.phone_outlined,
-                          size: 18, color: Colors.grey[600]),
-                      const SizedBox(width: 8),
-                      Text(
-                        _restaurant!.phone,
-                        style: TextStyle(color: Colors.grey[700]),
-                      ),
-                    ],
-                  ),
-                ],
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            children: [
+              _statusTag(
+                Icons.qr_code_2,
+                restaurant.qrMode == 'multi' ? 'Table ordering' : 'Menu QR',
+                AppColors.accent,
               ),
-            ),
+              if (restaurant.status != null)
+                _statusTag(
+                  Icons.circle,
+                  restaurant.status == 'active' ? 'Active' : 'Disabled',
+                  restaurant.status == 'active'
+                      ? AppColors.accent
+                      : Theme.of(context).colorScheme.error,
+                ),
+            ],
           ),
-          const SizedBox(height: 24),
-          Text(
-            'Quick Actions',
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          _buildActionTile(
-            icon: Icons.receipt_long_outlined,
-            title: 'Orders',
-            subtitle: 'View and manage incoming orders',
-            onTap: () => context.push('/orders'),
-          ),
-          if (_restaurant!.qrMode == 'multi')
-            _buildActionTile(
-              icon: Icons.table_bar_outlined,
-              title: 'Tables',
-              subtitle: 'Manage tables and download QR codes',
-              onTap: () => context.push('/tables'),
-            ),
-          _buildActionTile(
-            icon: Icons.monetization_on_outlined,
-            title: 'Earnings',
-            subtitle: 'View monthly revenue and breakdowns',
-            onTap: () => context.push('/earnings'),
-          ),
-          _buildActionTile(
-            icon: Icons.analytics_outlined,
-            title: 'Analytics',
-            subtitle: 'Per-item sales and revenue analytics',
-            onTap: () => context.push('/analytics'),
-          ),
-          _buildActionTile(
-            icon: Icons.category_outlined,
-            title: 'Manage Categories',
-            subtitle: 'Add, edit, and reorder menu categories',
+          const SectionHeading('Daily operations'),
+          _shortcutGrid(),
+          const SectionHeading('Restaurant'),
+          ActionRow(
+            icon: Icons.restaurant_menu,
+            title: 'Menu categories',
             onTap: () => context.push('/categories'),
           ),
-          _buildActionTile(
-            icon: Icons.edit_outlined,
-            title: 'Edit Profile',
-            subtitle: 'Update restaurant details',
-            onTap: () => context.push('/profile-setup'),
-          ),
-          _buildActionTile(
-            icon: Icons.qr_code,
-            title: 'QR Code',
-            subtitle: 'View and download your restaurant QR code',
+          const Divider(),
+          if (restaurant.qrMode == 'multi') ...[
+            ActionRow(
+              icon: Icons.table_bar_outlined,
+              title: 'Tables',
+              onTap: () => context.push('/tables'),
+            ),
+            const Divider(),
+          ],
+          ActionRow(
+            icon: Icons.qr_code_2,
+            title: 'Restaurant QR',
             onTap: () => context.push('/qr-code'),
           ),
-          _buildActionTile(
-            icon: Icons.settings_outlined,
-            title: 'QR Mode Settings',
-            subtitle: 'Switch between single and multi-table QR modes',
+          const Divider(),
+          ActionRow(
+            icon: Icons.tune,
+            title: 'QR settings',
+            detail: restaurant.qrMode == 'multi' ? 'Multi-table' : 'Single',
             onTap: () async {
               await context.push('/settings/qr-mode');
-              // Reload restaurant data to reflect mode change
-              _loadRestaurant();
+              if (mounted) _loadRestaurant();
             },
+          ),
+          const SectionHeading('Performance'),
+          ActionRow(
+            icon: Icons.account_balance_wallet_outlined,
+            title: 'Revenue',
+            onTap: () => context.push('/earnings'),
+          ),
+          const Divider(),
+          ActionRow(
+            icon: Icons.insights_outlined,
+            title: 'Item analytics',
+            onTap: () => context.push('/analytics'),
+          ),
+          const Divider(),
+          ActionRow(
+            icon: Icons.history,
+            title: 'Order history',
+            onTap: () => context.push('/order-history'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildActionTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: const Color(0xFFFF6D00).withValues(alpha: 0.1),
-          child: Icon(icon, color: const Color(0xFFFF6D00)),
+  Widget _statusTag(IconData icon, String label, Color color) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(4),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: icon == Icons.circle ? 7 : 15, color: color),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: color,
+          ),
         ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: onTap,
-      ),
+      ],
+    ),
+  );
+
+  Widget _shortcutGrid() {
+    final shortcuts = [
+      (Icons.receipt_long_outlined, 'Orders', '/orders'),
+      (Icons.restaurant_menu, 'Menu', '/categories'),
+      (Icons.qr_code_2, 'QR image', '/qr-code'),
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 340 ? 3 : 2;
+        final width = (constraints.maxWidth - (columns - 1) * 10) / columns;
+        return Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: shortcuts
+              .map(
+                (shortcut) => SizedBox(
+                  width: width,
+                  child: Card(
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () => context.push(shortcut.$3),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              shortcut.$1,
+                              color: AppColors.accent,
+                              size: 25,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              shortcut.$2,
+                              style: Theme.of(context).textTheme.labelLarge,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
+        );
+      },
     );
   }
 }

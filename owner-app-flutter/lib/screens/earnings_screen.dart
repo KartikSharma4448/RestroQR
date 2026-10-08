@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import '../ui/app_theme.dart';
+import '../ui/owner_widgets.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -50,10 +52,7 @@ class _EarningsScreenState extends State<EarningsScreen> {
   }
 
   Future<void> _loadData() async {
-    await Future.wait([
-      _loadSummary(),
-      _loadBreakdown(),
-    ]);
+    await Future.wait([_loadSummary(), _loadBreakdown()]);
   }
 
   Future<void> _loadSummary() async {
@@ -172,11 +171,11 @@ class _EarningsScreenState extends State<EarningsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Earnings'),
-        backgroundColor: const Color(0xFFFF6D00),
-        foregroundColor: Colors.white,
+        automaticallyImplyLeading: false,
+        title: const Text('Revenue'),
       ),
       body: _buildBody(),
+      bottomNavigationBar: const OwnerNavigation(selected: 3),
     );
   }
 
@@ -190,10 +189,7 @@ class _EarningsScreenState extends State<EarningsScreen> {
             const SizedBox(height: 16),
             Text(_error!, textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _loadData,
-              child: const Text('Retry'),
-            ),
+            FilledButton(onPressed: _loadData, child: const Text('Retry')),
           ],
         ),
       );
@@ -231,12 +227,11 @@ class _EarningsScreenState extends State<EarningsScreen> {
           children: [
             Text(
               _formatMonth(_selectedMonth),
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w600),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
-            const Icon(Icons.calendar_month, color: Color(0xFFFF6D00)),
+            const Icon(Icons.calendar_month, color: AppColors.accent),
           ],
         ),
       ),
@@ -245,124 +240,78 @@ class _EarningsScreenState extends State<EarningsScreen> {
 
   Widget _buildSummaryCard() {
     if (_isLoadingSummary) {
-      return const Card(
-        child: Padding(
-          padding: EdgeInsets.all(32),
-          child: Center(child: CircularProgressIndicator()),
-        ),
+      return const Padding(
+        padding: EdgeInsets.all(24),
+        child: Center(child: CircularProgressIndicator()),
       );
     }
-
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Monthly Summary',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildSummaryTile(
-                    icon: Icons.receipt_long,
-                    label: 'Total Orders',
-                    value: '${_summary?.totalOrders ?? 0}',
-                    color: Colors.blue,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildSummaryTile(
-                    icon: Icons.currency_rupee,
-                    label: 'Total Revenue',
-                    value: _formatCurrency(_summary?.totalRevenue ?? 0),
-                    color: Colors.green,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSummaryTile({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 28),
+          const Text(
+            'Revenue received',
+            style: TextStyle(color: AppColors.muted),
+          ),
           const SizedBox(height: 8),
           Text(
-            value,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: color,
+            _formatCurrency(_summary?.totalRevenue ?? 0),
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Icon(
+                Icons.receipt_long_outlined,
+                color: AppColors.muted,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${_summary?.totalOrders ?? 0} paid orders',
+                  style: const TextStyle(color: AppColors.muted),
                 ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(color: Colors.grey[600], fontSize: 13),
-          ),
+          const SizedBox(height: 20),
+          const Divider(),
         ],
       ),
     );
   }
 
-  Widget _buildPeriodToggle() {
-    return Row(
-      children: [
-        Text(
-          'Breakdown',
-          style: Theme.of(context)
-              .textTheme
-              .titleMedium
-              ?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        const Spacer(),
-        SegmentedButton<String>(
+  Widget _buildPeriodToggle() => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text('Breakdown', style: Theme.of(context).textTheme.titleMedium),
+      const SizedBox(height: 12),
+      SizedBox(
+        width: double.infinity,
+        child: SegmentedButton<String>(
+          showSelectedIcon: false,
           segments: _periods
               .map(
-                (p) => ButtonSegment(
-                  value: p,
+                (period) => ButtonSegment(
+                  value: period,
                   label: Text(
-                    p[0].toUpperCase() + p.substring(1),
-                    style: const TextStyle(fontSize: 12),
+                    {
+                      'daily': 'Day',
+                      'weekly': 'Week',
+                      'monthly': 'Month',
+                    }[period]!,
                   ),
                 ),
               )
               .toList(),
           selected: {_selectedPeriod},
-          onSelectionChanged: (selected) {
-            _onPeriodChanged(selected.first);
-          },
-          style: ButtonStyle(
-            visualDensity: VisualDensity.compact,
-          ),
+          onSelectionChanged: (selection) => _onPeriodChanged(selection.first),
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
 
   Widget _buildBreakdownList() {
     if (_isLoadingBreakdown) {
@@ -402,8 +351,8 @@ class _EarningsScreenState extends State<EarningsScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: const Color(0xFFFF6D00).withValues(alpha: 0.1),
-          child: const Icon(Icons.bar_chart, color: Color(0xFFFF6D00)),
+          backgroundColor: AppColors.accent.withValues(alpha: 0.1),
+          child: const Icon(Icons.bar_chart, color: AppColors.accent),
         ),
         title: Text(
           entry.date,
