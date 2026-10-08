@@ -20,7 +20,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "UNLICENSED",
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.10.0",

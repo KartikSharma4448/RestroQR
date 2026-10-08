@@ -87,6 +87,8 @@ variables. Use a hexadecimal password in this example, or URL-encode special cha
 before placing the password in DATABASE_URL. Database credentials must match on both sides.
 PostgreSQL is not exposed to the host by default.
 Its backend consumes a private `backend/.env.docker` file.
+Copy `backend/.env.docker.example` to that file and replace the JWT placeholder.
+Set POSTGRES_PASSWORD and TABLE_TOKEN_SECRET in the shell before running Compose.
 
 ```powershell
 docker compose config --quiet
