@@ -138,3 +138,14 @@ No database deletion was performed in this refresh.
 - Review application errors and database readiness.
 - Retain the previous release; roll back application code only after checking schema
   backward compatibility. Restore data from a verified backup if a migration is destructive.
+
+
+## Environment Configuration Notes
+
+In hosting dashboards, enter each  environment variable name and value in separate
+fields; do not paste `NAME=value` into the value field. Replace `your-api-host`
+with the actual HTTPS API hostname before building the clients.
+
+Client API URLs are public configuration, not a place for secrets. Keep
+`DATABASE_URL`, `JWT_SECRET`, `TABLE_TOKEN_SECRET` and service-account credentials
+on the backend only; never copy them into client environment variables.
