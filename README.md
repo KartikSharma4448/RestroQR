@@ -5,7 +5,7 @@
 <h1 align="center">RestroQR</h1>
 <p align="center"><strong>Digital menus, table QR ordering and restaurant operations.</strong></p>
 <p align="center">
-  <a href="https://restro-qr-peach.vercel.app">Customer Website</a> |
+  <a href="https://restroqr.thekartiksharma.in">Customer Website</a> |
   <a href="DEPLOYMENT.md">Deployment</a> |
   <a href="TECHNICAL.md">Architecture</a> |
   <a href="SECURITY.md">Security</a>
