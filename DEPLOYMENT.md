@@ -4,6 +4,32 @@ Deploy backend and customer site together when public API contracts change.
 A Git push may trigger an existing hosting integration; this guide does not certify
 that any such deployment completed.
 
+## Requirements
+
+### Backend and Customer Website
+
+- Node.js 24 and npm.
+- Access to the repository and deployment branch.
+- A PostgreSQL database reachable from the backend, with permission
+  to run application migrations.
+- Render and Vercel accounts when following this hosting guide.
+- Public HTTPS URLs for the backend API and customer website.
+- Backend variables: `DATABASE_URL`, `JWT_SECRET`,
+  `TABLE_TOKEN_SECRET`, `CUSTOMER_BASE_URL` and `CORS_ORIGINS`.
+- Customer variable: `NEXT_PUBLIC_API_URL`.
+- A database backup before updating an existing deployment.
+
+### Additional Features
+
+- Cloudinary configuration for image uploads.
+- Firebase credentials for push notifications.
+- DNS access for a custom domain.
+- Flutter, Android build tools and a signing keystore for Android releases.
+- Docker Engine and Docker Compose when using Docker.
+
+Keep backend secrets and signing keys outside Git and public client builds.
+
+
 ## Before Deploying
 
 - Review [verification limits](docs/VERIFICATION.md) and [release checks](TESTING-AND-DEPLOYMENT-GUIDE.md).
