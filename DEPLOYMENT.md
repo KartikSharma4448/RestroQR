@@ -20,7 +20,7 @@ Create or use a Node web service with root directory `backend`.
 | Setting | Value |
 | --- | --- |
 | Runtime | Node.js 24 LTS |
-| Build command | npm ci && npm run build |
+| Build command | npm ci --include=dev && npm run build |
 | Start command | npm start |
 | Health path | /health |
 | Environment | NODE_ENV=production |
@@ -28,6 +28,9 @@ Create or use a Node web service with root directory `backend`.
 Set `DATABASE_URL`, `JWT_SECRET`, `TABLE_TOKEN_SECRET`, `CUSTOMER_BASE_URL`
 and `CORS_ORIGINS`. Configure `CLOUDINARY_URL` for uploads and Firebase application
 credentials for notifications. Render supplies `PORT`.
+
+The build uses TypeScript and its declaration packages from `devDependencies`.
+`--include=dev` keeps those available during the build even when `NODE_ENV=production`.
 
 Generate independent random secrets. JWT requires at least 32 characters;
 table encryption supports a random 32-byte hexadecimal key.
@@ -52,8 +55,27 @@ The API value must not end in `/api`. Redeploy after changing it: public environ
 values are bundled at build time. Add the exact website origin to backend CORS and
 set `CUSTOMER_BASE_URL` to the customer site's public origin.
 Verify menu, table ordering, board updates and privacy page.
-The existing repository website link is `https://restro-qr-peach.vercel.app`;
-availability and release version must be checked independently.
+The public customer website is `https://restroqr.thekartiksharma.in`.
+Availability and deployed release version must be checked independently.
+
+### Customer Custom Domain Checklist
+
+1. Add `restroqr.thekartiksharma.in` to the customer site's Vercel domain settings.
+2. Configure the DNS record requested by Vercel and verify domain ownership and HTTPS.
+3. Set backend `CUSTOMER_BASE_URL=https://restroqr.thekartiksharma.in` so newly
+   generated restaurant/table QR URLs use the custom domain. The backend still has
+   a legacy Vercel hostname fallback, so configure this value explicitly.
+4. Add `https://restroqr.thekartiksharma.in` to `CORS_ORIGINS`, preserving any
+   intended admin origins. Use comma-separated exact origins, not a wildcard.
+5. Restart/redeploy the backend after environment changes. If the API origin changed,
+   update customer `NEXT_PUBLIC_API_URL` and rebuild/redeploy the customer site too.
+6. Verify browser API requests, restaurant menus, table ordering and order-board updates
+   on the custom domain. `/health` alone does not verify this flow or database access.
+
+Existing printed QR codes keep their original hostname. Preserve access through the
+old hostname or verify a redirect that retains the complete path and query string.
+Test representative existing restaurant and table QR URLs before retiring that hostname.
+Do not rotate `TABLE_TOKEN_SECRET` as part of this domain change.
 
 ## Admin Dashboard
 
