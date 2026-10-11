@@ -3,25 +3,37 @@ import { Link } from 'react-router-dom';
 import api from '../services/api';
 import StatusBadge from '../components/StatusBadge';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { isAxiosError } from 'axios';
 
 interface Restaurant {
   id: string;
   name: string;
-  address: string;
-  phone: string;
   status: 'active' | 'disabled';
-  owner_name?: string;
-  created_at: string;
+  ownerName: string;
+  createdAt: string;
 }
 
 interface PaginatedResponse {
   success: boolean;
   data: {
     restaurants: Restaurant[];
-    total: number;
-    page: number;
-    pageSize: number;
+    pagination: {
+      total: number;
+      page: number;
+      pageSize: number;
+      totalPages: number;
+    };
   };
+}
+
+function requestError(error: unknown, fallback: string): string {
+  if (isAxiosError(error)) {
+    if (!error.response) {
+      return 'Could not reach the API. Check your connection and the backend CORS settings.';
+    }
+    return error.response.data?.error?.message || fallback;
+  }
+  return fallback;
 }
 
 export default function RestaurantsPage() {
@@ -52,14 +64,9 @@ export default function RestaurantsPage() {
         params: { page, pageSize },
       });
       setRestaurants(response.data.data.restaurants);
-      setTotal(response.data.data.total);
+      setTotal(response.data.data.pagination.total);
     } catch (err: unknown) {
-      if (err && typeof err === 'object' && 'response' in err) {
-        const axiosErr = err as { response?: { data?: { error?: { message?: string } } } };
-        setError(axiosErr.response?.data?.error?.message || 'Failed to load restaurants.');
-      } else {
-        setError('An unexpected error occurred.');
-      }
+      setError(requestError(err, 'Failed to load restaurants.'));
     } finally {
       setLoading(false);
     }
@@ -90,12 +97,7 @@ export default function RestaurantsPage() {
         `Restaurant "${restaurant.name}" has been ${newStatus === 'active' ? 'enabled' : 'disabled'}.`
       );
     } catch (err: unknown) {
-      if (err && typeof err === 'object' && 'response' in err) {
-        const axiosErr = err as { response?: { data?: { error?: { message?: string } } } };
-        setError(axiosErr.response?.data?.error?.message || 'Failed to update status.');
-      } else {
-        setError('An unexpected error occurred.');
-      }
+      setError(requestError(err, 'Failed to update status.'));
     } finally {
       setStatusLoading(null);
     }
@@ -116,12 +118,7 @@ export default function RestaurantsPage() {
         fetchRestaurants();
       }
     } catch (err: unknown) {
-      if (err && typeof err === 'object' && 'response' in err) {
-        const axiosErr = err as { response?: { data?: { error?: { message?: string } } } };
-        setError(axiosErr.response?.data?.error?.message || 'Failed to delete restaurant.');
-      } else {
-        setError('An unexpected error occurred.');
-      }
+      setError(requestError(err, 'Failed to delete restaurant.'));
       setDeleteTarget(null);
     } finally {
       setDeleteLoading(false);
@@ -211,10 +208,9 @@ export default function RestaurantsPage() {
                         >
                           {restaurant.name}
                         </Link>
-                        <p className="text-xs text-gray-500 mt-0.5">{restaurant.address}</p>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {restaurant.owner_name || '—'}
+                        {restaurant.ownerName || '—'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <StatusBadge status={restaurant.status} />
@@ -319,3 +315,4 @@ export default function RestaurantsPage() {
     </div>
   );
 }
+

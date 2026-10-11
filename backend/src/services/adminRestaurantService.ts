@@ -1,5 +1,5 @@
 import pool from '../config/database';
-import { NotFoundError, ValidationError, ValidationDetail } from '../errors';
+import { ConflictError, NotFoundError, ValidationError, ValidationDetail } from '../errors';
 
 export interface PaginationParams {
   page: number;
@@ -309,7 +309,16 @@ export async function deleteRestaurant(id: string): Promise<void> {
   }
 
   // Delete restaurant (CASCADE will remove categories and food items via FK)
-  await pool.query('DELETE FROM restaurants WHERE id = $1', [id]);
+  try {
+    await pool.query('DELETE FROM restaurants WHERE id = $1', [id]);
+  } catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === '23503') {
+      throw new ConflictError(
+        'This restaurant has linked records such as order history and cannot be deleted. Disable it instead.'
+      );
+    }
+    throw error;
+  }
 
   // TODO: Call Cloudinary API to delete images
   // For now, log the URLs that would be cleaned up
@@ -317,3 +326,4 @@ export async function deleteRestaurant(id: string): Promise<void> {
     console.log(`[Cloudinary cleanup] Would delete ${imageUrls.length} images:`, imageUrls);
   }
 }
+
