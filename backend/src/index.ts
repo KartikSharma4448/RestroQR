@@ -21,6 +21,12 @@ import ownerNotificationRoutes from './routes/owner/notifications';
 import publicMenuRoutes from './routes/public/menu';
 import publicOrderRoutes from './routes/public/orders';
 import publicLoyaltyRoutes from './routes/public/loyalty';
+import publicPaymentRoutes from './routes/public/payments';
+import publicWaiterRoutes from './routes/public/waiterCalls';
+import ownerWaiterRoutes from './routes/owner/waiterCalls';
+import ownerEngagementRoutes from './routes/owner/engagement';
+import publicEngagementRoutes from './routes/public/engagement';
+import { startOrderEmailWorker } from './services/customerOrderEmailService';
 
 dotenv.config();
 
@@ -62,6 +68,17 @@ app.use(cors({
   credentials: true,
 }));
 app.use(publicRateLimiter);
+// Fifty configured lines can legitimately contain up to twenty add-on IDs each.
+const orderJson = express.json({ limit: '64kb' });
+app.use('/api/public/orders', (req, res, next) => {
+  orderJson(req, res, (error?: unknown) => {
+    if (error && typeof error === 'object' && 'type' in error && error.type === 'entity.too.large') {
+      res.status(413).json({ success: false, error: { code: 'PAYLOAD_TOO_LARGE', message: 'Order selection is too large' } });
+      return;
+    }
+    next(error);
+  });
+});
 app.use(express.json({ limit: '10kb' }));
 
 // Health check
@@ -82,8 +99,13 @@ app.use('/api/owner', authenticate, requireRole('owner'), ownerTableRoutes);
 app.use('/api/owner', authenticate, requireRole('owner'), ownerOrdersRoutes);
 app.use('/api/owner', authenticate, requireRole('owner'), ownerEarningsRoutes);
 app.use('/api/owner', authenticate, requireRole('owner'), ownerNotificationRoutes);
+app.use('/api/owner', authenticate, requireRole('owner'), ownerWaiterRoutes);
+app.use('/api/owner', authenticate, requireRole('owner'), ownerEngagementRoutes);
+app.use('/api/public', publicEngagementRoutes);
 app.use('/api/public', publicMenuRoutes);
 app.use('/api/public', publicOrderRoutes);
+app.use('/api/public', publicPaymentRoutes);
+app.use('/api/public', publicWaiterRoutes);
 app.use('/api/public', publicLoyaltyRoutes);
 
 // 404 catch-all (must be after all routes)
@@ -95,6 +117,7 @@ app.use(errorHandler);
 if (require.main === module) {
   app.listen(PORT, process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1', () => {
     console.log(`RestroQR API server running on port ${PORT}`);
+    startOrderEmailWorker();
   });
 }
 

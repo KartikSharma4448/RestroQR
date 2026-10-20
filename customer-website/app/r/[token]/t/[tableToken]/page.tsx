@@ -1,9 +1,11 @@
 import { redirect } from 'next/navigation';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { fetchMenu, ApiError } from '@/lib/api';
+import { fetchMenu } from '@/lib/api';
 import MenuHeader from '@/components/MenuHeader';
 import TableMenuContent from '@/components/TableMenuContent';
+import MenuContent from '@/components/MenuContent';
+import LiveOrderBoard from '@/components/LiveOrderBoard';
 
 // Always fetch fresh menu data, never serve stale cache
 export const revalidate = 0;
@@ -42,11 +44,8 @@ export default async function TableMenuPage({ params }: TableMenuPageProps) {
   try {
     const response = await fetchMenu(token);
     data = response.data;
-  } catch (error) {
-    if (error instanceof ApiError) {
-      redirect('/error');
-    }
-    redirect('/error');
+  } catch {
+    redirect(`/error?retry=${encodeURIComponent(`/r/${encodeURIComponent(token)}/t/${encodeURIComponent(tableToken)}`)}`);
   }
 
   const { restaurant, categories } = data;
@@ -65,16 +64,26 @@ export default async function TableMenuPage({ params }: TableMenuPageProps) {
     <main className="customer-menu">
       <MenuHeader
         name={restaurant.name}
+        restaurantToken={token}
         logo_url={restaurant.logo_url}
         cover_image_url={restaurant.cover_image_url}
-        ordering
+        ordering={restaurant.ordering_enabled !== false}
+        welcome={restaurant.customer_email_required}
+        ownerPhotoUrl={restaurant.owner_photo_url}
+        address={restaurant.address}
       />
 
-      <TableMenuContent
+      {restaurant.ordering_enabled === false ? <>
+        <p role="status" className="px-6 py-4 text-center">This restaurant is not accepting new orders yet.</p>
+        <MenuContent categories={sortedCategories} />
+        {!restaurant.customer_email_required&&<LiveOrderBoard restaurantToken={token}/>}
+      </> : <TableMenuContent
         categories={sortedCategories}
         tableToken={tableToken}
         restaurantToken={token}
-      />
+        customerEmailRequired={restaurant.customer_email_required}
+        waiterCallingEnabled={restaurant.waiter_calling_enabled}
+      />}
     </main>
   );
 }

@@ -10,6 +10,7 @@ build/
 out/
 
 # Environment files
+/backend/.secrets/
 .env
 .env.local
 .env.docker

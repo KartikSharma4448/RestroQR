@@ -1,0 +1,708 @@
+/* Restaurant menu surfaces only; the RestroQR introduction stays independent. */
+.customer-menu {
+  --accent: #215942;
+  --ink: #202a24;
+  --muted: #69736b;
+  --line: #e5e9e4;
+  width: min(1120px, 100%);
+  max-width: 1120px;
+  padding-bottom: 100px;
+  background: #fff;
+}
+.customer-menu button,
+.customer-menu a {
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+.customer-menu .menu-brand {
+  min-height: 54px;
+  padding: 12px 36px;
+  justify-content: space-between;
+  border-bottom: 0;
+}
+.menu-platform {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.menu-live-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.menu-live-link svg {
+  color: var(--accent);
+}
+.cafe-masthead {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: end;
+  min-height: 320px;
+  padding: 38px 44px;
+  overflow: hidden;
+}
+.cafe-cover-image {
+  object-fit: cover;
+  object-position: center;
+  z-index: -2;
+}
+.cafe-masthead.has-cover {
+  color: #fff;
+}
+.cafe-masthead.has-cover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgb(11 24 17 / 30%);
+}
+.cafe-masthead.no-cover {
+  min-height: 200px;
+  background: #edf3ef;
+  border-block: 1px solid #e2ebe4;
+}
+.cafe-identity {
+  width: 100%;
+  min-width: 0;
+}
+.cafe-kicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+.cafe-identity h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 52px;
+  font-weight: 500;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+  max-width: 750px;
+}
+.has-cover .cafe-identity {
+  text-shadow: 0 1px 2px #000, 0 0 12px rgb(0 0 0 / 40%);
+}
+.cafe-details {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+  max-width: 700px;
+}
+.cafe-details p {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.cafe-details p svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.cafe-owner {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #fff;
+}
+.cafe-owner img {
+  display: block;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+.restaurant-services {
+  padding: 20px 36px 0;
+}
+.cafe-actions {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 12px;
+}
+.cafe-action {
+  min-height: 56px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 600;
+}
+.cafe-action svg {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+.cafe-action small {
+  font-size: 11px;
+  color: var(--muted);
+}
+.cafe-action:hover:not(:disabled),
+.cafe-action[aria-expanded="true"] {
+  background: #edf3ef;
+  border-color: #b7c9bb;
+}
+.cafe-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.cafe-action-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.cafe-action-primary svg {
+  color: #fff;
+}
+.cafe-action-primary:hover {
+  background: #19452f !important;
+  color: #fff;
+}
+.cafe-reward-strip {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 0;
+  margin-top: 12px;
+  border-block: 1px dashed #cedbce;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.cafe-reward-strip > svg {
+  flex-shrink: 0;
+  color: #b6563c;
+}
+.cafe-reward-strip > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.cafe-reward-strip h2 {
+  font-size: 13px;
+  color: var(--accent);
+}
+.cafe-service-panel {
+  padding: 24px 0;
+  margin-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.cafe-simple-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 36px;
+  border-bottom: 1px solid var(--line);
+}
+.cafe-simple-action a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  min-height: 38px;
+}
+.cafe-simple-action span {
+  font-family: Georgia, serif;
+  font-style: italic;
+  color: var(--muted);
+  font-size: 14px;
+}
+.cafe-assistance {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 36px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+.cafe-assistance h2 {
+  color: var(--ink);
+  font-size: 13px;
+}
+.cafe-assistance p[role="status"] {
+  font-size: 12px;
+  color: var(--muted);
+}
+.cafe-waiter-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: #f0f4ef;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+.cafe-waiter-button:disabled {
+  opacity: 0.55;
+}
+.customer-menu .menu-content {
+  padding: 0 36px 12px;
+}
+.cafe-menu-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 32px 0 24px;
+}
+.cafe-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.cafe-menu-heading h2 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 36px;
+  font-weight: 500;
+  line-height: 1.15;
+}
+.cafe-menu-heading h2 span {
+  color: #c86346;
+}
+.cafe-menu-heading > p {
+  font-size: 12px;
+  color: var(--muted);
+  padding-bottom: 3px;
+  text-align: right;
+}
+.cafe-menu-heading > p span {
+  color: #c6cec6;
+  margin: 0 5px;
+}
+.customer-menu .menu-toolbar {
+  padding: 14px 36px 0;
+  margin: 0 -36px 30px;
+  background: #fff;
+  border-block: 1px solid var(--line);
+  box-shadow: 0 8px 16px -18px #142b1d;
+}
+.customer-menu .menu-tools {
+  gap: 20px;
+}
+.menu-search-wrap {
+  flex: 1;
+  min-width: 0;
+}
+.customer-menu .menu-search {
+  background: #f6f8f5;
+  border-color: #e5e9e3;
+}
+.customer-menu .diet-filters {
+  gap: 8px;
+}
+.customer-menu .diet-filters button {
+  border-radius: 5px;
+  background: #fff;
+}
+.customer-menu .diet-filters button[aria-pressed="true"] {
+  background: #edf3ef;
+  border-color: #a2b8a6;
+  color: var(--accent);
+}
+.customer-menu .menu-nav-wrap {
+  margin-top: 14px;
+}
+.customer-menu .category-tabs {
+  gap: 28px;
+}
+.customer-menu .category-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.customer-menu .category-tabs .active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.category-tab-count {
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding-inline: 4px;
+  font-size: 10px;
+  border-radius: 4px;
+  color: #7e877f;
+  background: #f1f4ef;
+}
+.menu-filter-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: 6px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--muted);
+}
+.menu-filter-summary button {
+  display: grid;
+  place-items: center;
+  height: 36px;
+  width: 36px;
+}
+.customer-menu .category-heading {
+  gap: 12px;
+  margin: 0 0 2px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.customer-menu .category-heading h2 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 26px;
+  font-weight: 500;
+}
+.customer-menu .category-heading .category-index {
+  font-family: Georgia, serif;
+  font-size: 15px;
+  color: #ba644b;
+}
+.category-item-count {
+  margin-left: auto;
+  white-space: nowrap;
+  font-size: 11px;
+}
+.customer-menu .menu-category {
+  margin-bottom: 36px;
+  scroll-margin-top: 170px;
+}
+.customer-menu .dish-grid {
+  column-gap: 36px;
+  row-gap: 0;
+}
+.customer-menu .dish-card {
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding: 22px 0;
+  min-height: 190px;
+  align-items: flex-start;
+  gap: 18px;
+  background: #fff;
+}
+.customer-menu .dish-selected {
+  border-bottom-color: #a9c3ad;
+}
+.customer-menu .dish-details {
+  flex: 1;
+}
+.customer-menu .dish-details h3 {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-top: 7px;
+}
+.customer-menu .dish-price {
+  font-size: 15px;
+  color: var(--accent);
+  font-weight: 650;
+  margin-top: 8px;
+}
+.dish-price > span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+.customer-menu .dish-description {
+  font-size: 12px;
+  line-height: 1.65;
+  margin-top: 8px;
+  color: var(--muted);
+}
+.customer-menu .dish-media {
+  width: 120px;
+  gap: 8px;
+}
+.customer-menu .dish-photo {
+  width: 120px;
+  height: 106px;
+  border-radius: 6px;
+  background: #f2f4ef;
+  color: #a2afa1;
+}
+.customer-menu .dish-without-photo .dish-photo {
+  background: #f6f7f4;
+}
+.customer-menu .dish-add {
+  width: 120px;
+  height: 42px;
+  border-color: #c5d4c7;
+  border-radius: 5px;
+  font-size: 12px;
+  color: var(--accent);
+}
+.customer-menu .dish-add:hover:not(:disabled) {
+  background: #f0f5ee;
+}
+.customer-menu .quantity-control {
+  width: 120px;
+  height: 42px;
+  grid-template-columns: 40px 38px 40px;
+  border-color: #c5d4c7;
+  border-radius: 5px;
+}
+.customer-menu .dish-unavailable .dish-details {
+  opacity: 0.6;
+}
+.customer-menu .menu-empty {
+  gap: 12px;
+  padding: 52px 16px;
+  color: var(--muted);
+}
+.menu-empty h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.menu-empty p {
+  font-size: 13px;
+}
+.cafe-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  font-size: 13px;
+  color: var(--accent);
+}
+.customer-menu .menu-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 28px 0 0;
+  margin-top: 24px;
+  border-top: 0;
+}
+.menu-footer > svg {
+  color: #7e967f;
+}
+.menu-footer > p {
+  font-family: Georgia, serif;
+  color: var(--muted);
+  font-size: 17px;
+  font-style: italic;
+}
+.menu-footer > a {
+  color: var(--muted);
+  font-size: 10px;
+}
+.menu-footer strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+.customer-menu .order-board {
+  margin: 36px 36px 0;
+  max-width: none;
+  padding: 24px 0;
+  border-top: 1px solid var(--line);
+  scroll-margin-top: 190px;
+}
+.customer-menu .order-board-header h2 {
+  font-size: 16px;
+}
+.customer-menu .order-board th {
+  background: #f3f6f1;
+}
+.customer-menu .order-board-empty {
+  padding: 12px 0;
+}
+@media (max-width: 700px) {
+  .customer-menu .menu-brand {
+    padding-inline: 20px;
+    min-height: 48px;
+  }
+  .cafe-masthead {
+    min-height: 240px;
+    padding: 26px 22px;
+  }
+  .cafe-masthead.no-cover {
+    min-height: 180px;
+  }
+  .cafe-identity h1 {
+    font-size: 36px;
+  }
+  .cafe-kicker {
+    font-size: 11px;
+    margin-bottom: 10px;
+  }
+  .cafe-details {
+    margin-top: 14px;
+    gap: 10px;
+  }
+  .cafe-details p {
+    font-size: 12px;
+  }
+  .restaurant-services {
+    padding: 16px 20px 0;
+  }
+  .cafe-actions {
+    gap: 8px;
+    grid-template-columns: repeat(4,minmax(0,1fr));
+  }
+  .cafe-action {
+    min-height: 66px;
+    font-size: 11px;
+    gap: 5px;
+    flex-direction:column;
+    flex-wrap:nowrap;
+    text-align:center;
+    padding: 10px 6px;
+  }
+  .cafe-action svg {
+    width: 17px;
+    height: 17px;
+  }
+  .cafe-action small {
+    display: none;
+  }
+  .cafe-assistance {
+    margin-inline: 20px;
+    padding-block: 14px;
+    gap: 12px;
+  }
+  .cafe-waiter-button {
+    padding-inline: 10px;
+  }
+  .cafe-simple-action {
+    padding: 12px 20px;
+  }
+  .cafe-simple-action span {
+    font-size: 12px;
+  }
+  .customer-menu .menu-content {
+    padding-inline: 20px;
+  }
+  .cafe-menu-heading {
+    padding: 26px 0 20px;
+  }
+  .cafe-menu-heading h2 {
+    font-size: 30px;
+  }
+  .cafe-menu-heading > p {
+    font-size: 10px;
+    max-width: 120px;
+    line-height: 1.6;
+  }
+  .customer-menu .menu-toolbar {
+    padding: 12px 20px 0;
+    margin-inline: -20px;
+    margin-bottom: 26px;
+  }
+  .customer-menu .menu-tools {
+    gap: 10px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .customer-menu .menu-search {
+    min-height: 44px;
+  }
+  .customer-menu .menu-search input {
+    font-size: 13px;
+  }
+  .customer-menu .diet-filters {
+    justify-content: flex-start;
+  }
+  .customer-menu .diet-filters button {
+    flex: 0 1 auto;
+    padding: 8px 12px;
+    min-height: 36px;
+    font-size: 11px;
+  }
+  .customer-menu .menu-nav-wrap {
+    margin-top: 8px;
+  }
+  .customer-menu .category-tabs {
+    gap: 24px;
+  }
+  .customer-menu .category-tabs button {
+    min-height: 44px;
+    font-size: 12px;
+  }
+  .customer-menu .category-heading h2 {
+    font-size: 24px;
+  }
+  .customer-menu .menu-category {
+    scroll-margin-top: 215px;
+  }
+  .customer-menu .dish-card {
+    min-height: 174px;
+    padding-block: 18px;
+    gap: 16px;
+  }
+  .customer-menu .dish-details h3 {
+    font-size: 15px;
+  }
+  .customer-menu .dish-media,
+  .customer-menu .dish-photo,
+  .customer-menu .dish-add {
+    width: 108px;
+  }
+  .customer-menu .dish-photo {
+    height: 96px;
+  }
+  .customer-menu .quantity-control {
+    width: 108px;
+    grid-template-columns: 36px 34px 36px;
+  }
+  .customer-menu .order-board {
+    margin-inline: 20px;
+  }
+}
+.customer-menu .cafe-service-panel .order-board { margin:0; padding:0; border:0; }
+@media (max-width: 360px) {
+  .cafe-identity h1 {
+    font-size: 32px;
+  }
+  .cafe-simple-action span {
+    display: none;
+  }
+  .customer-menu .dish-media,
+  .customer-menu .dish-photo,
+  .customer-menu .dish-add {
+    width: 96px;
+  }
+  .customer-menu .quantity-control {
+    width: 96px;
+    grid-template-columns: 32px 30px 32px;
+  }
+  .customer-menu .dish-card {
+    gap: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .customer-menu button,
+  .customer-menu a {
+    transition: none;
+  }
+}

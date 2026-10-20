@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import StatusBadge from '../components/StatusBadge';
@@ -35,6 +35,7 @@ export default function OwnersPage() {
   const [selectedOwner, setSelectedOwner] = useState<OwnerDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const detailRequestId = useRef(0);
 
   const fetchOwners = useCallback(async () => {
     setLoading(true);
@@ -51,18 +52,23 @@ export default function OwnersPage() {
 
   useEffect(() => {
     fetchOwners();
+    return () => { detailRequestId.current++; };
   }, [fetchOwners]);
 
   async function handleViewOwner(ownerId: string) {
+    const requestId = ++detailRequestId.current;
     setDetailLoading(true);
     setSelectedOwner(null);
+    setError('');
     try {
       const response = await api.get(`/admin/owners/${ownerId}`);
+      if (requestId !== detailRequestId.current) return;
       setSelectedOwner(response.data.data.owner);
     } catch {
+      if (requestId !== detailRequestId.current) return;
       setError('Failed to load owner details.');
     } finally {
-      setDetailLoading(false);
+      if (requestId === detailRequestId.current) setDetailLoading(false);
     }
   }
 
@@ -76,9 +82,7 @@ export default function OwnersPage() {
         prev.map((o) => (o.id === ownerId ? { ...o, status: newStatus } : o))
       );
       // Update detail view if it's the same owner
-      if (selectedOwner?.id === ownerId) {
-        setSelectedOwner((prev) => (prev ? { ...prev, status: newStatus } : prev));
-      }
+      setSelectedOwner((prev) => prev?.id === ownerId ? { ...prev, status: newStatus } : prev);
     } catch {
       setError('Failed to update owner status.');
     } finally {

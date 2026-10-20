@@ -27,6 +27,9 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   String? _error;
   int _currentPage = 1;
   int _totalCount = 0;
+  bool _hasNextPage = false;
+  int _requestId = 0;
+  String? _loadMoreError;
   static const int _pageSize = 20;
 
   // Filters
@@ -67,12 +70,24 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     }
   }
 
-  bool get _hasMorePages => _orders.length < _totalCount;
+  bool get _hasMorePages => !_isLoading && _hasNextPage;
+
+  DateTime? get _startDate => _selectedDateRange?.start;
+
+  DateTime? get _endDate {
+    final end = _selectedDateRange?.end;
+    return end == null ? null : DateTime(end.year, end.month, end.day + 1);
+  }
 
   Future<void> _loadOrders() async {
+    final requestId = ++_requestId;
     setState(() {
       _isLoading = true;
+      _isLoadingMore = false;
       _error = null;
+      _loadMoreError = null;
+      _hasNextPage = false;
+      _totalCount = 0;
       _currentPage = 1;
       _orders.clear();
     });
@@ -82,13 +97,20 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
         page: 1,
         pageSize: _pageSize,
         status: _selectedStatus,
+        startDate: _startDate,
+        endDate: _endDate,
       );
+      if (!mounted || requestId != _requestId) return;
       setState(() {
-        _orders.addAll(_filterByDateRange(response.orders));
+        _orders.addAll(response.orders);
         _totalCount = response.totalCount;
+        _hasNextPage =
+            response.orders.isNotEmpty &&
+            response.page * response.pageSize < _totalCount;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted || requestId != _requestId) return;
       setState(() {
         _error = _extractErrorMessage(e);
         _isLoading = false;
@@ -98,9 +120,11 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
 
   Future<void> _loadMore() async {
     if (_isLoadingMore || !_hasMorePages) return;
+    final requestId = _requestId;
 
     setState(() {
       _isLoadingMore = true;
+      _loadMoreError = null;
     });
 
     try {
@@ -109,32 +133,26 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
         page: nextPage,
         pageSize: _pageSize,
         status: _selectedStatus,
+        startDate: _startDate,
+        endDate: _endDate,
       );
+      if (!mounted || requestId != _requestId) return;
       setState(() {
         _currentPage = nextPage;
-        _orders.addAll(_filterByDateRange(response.orders));
+        _orders.addAll(response.orders);
         _totalCount = response.totalCount;
+        _hasNextPage =
+            response.orders.isNotEmpty &&
+            response.page * response.pageSize < _totalCount;
         _isLoadingMore = false;
       });
     } catch (e) {
+      if (!mounted || requestId != _requestId) return;
       setState(() {
         _isLoadingMore = false;
+        _loadMoreError = _extractErrorMessage(e);
       });
     }
-  }
-
-  List<OrderData> _filterByDateRange(List<OrderData> orders) {
-    if (_selectedDateRange == null) return orders;
-    final start = _selectedDateRange!.start;
-    final end = _selectedDateRange!.end.add(
-      const Duration(hours: 23, minutes: 59, seconds: 59),
-    );
-    return orders.where((order) {
-      return order.createdAt.isAfter(
-            start.subtract(const Duration(seconds: 1)),
-          ) &&
-          order.createdAt.isBefore(end.add(const Duration(seconds: 1)));
-    }).toList();
   }
 
   String _extractErrorMessage(Object error) {
@@ -184,7 +202,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
       },
     );
 
-    if (picked != null) {
+    if (picked != null && mounted) {
       setState(() {
         _selectedDateRange = picked;
       });
@@ -361,12 +379,27 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
       child: ListView.builder(
         controller: _scrollController,
         padding: const EdgeInsets.all(16),
-        itemCount: _orders.length + (_isLoadingMore ? 1 : 0),
+        itemCount: _orders.length + (_hasNextPage ? 1 : 0),
         itemBuilder: (context, index) {
           if (index == _orders.length) {
-            return const Padding(
+            return Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
-              child: Center(child: CircularProgressIndicator()),
+              child: _isLoadingMore
+                  ? const Center(child: CircularProgressIndicator())
+                  : Column(
+                      children: [
+                        if (_loadMoreError != null)
+                          Text(_loadMoreError!, textAlign: TextAlign.center),
+                        TextButton(
+                          onPressed: _loadMore,
+                          child: Text(
+                            _loadMoreError == null
+                                ? 'Load more'
+                                : 'Retry loading more',
+                          ),
+                        ),
+                      ],
+                    ),
             );
           }
           return _buildOrderCard(_orders[index]);
@@ -430,7 +463,8 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              '${item.quantity}x ${item.itemName}',
+                              '${item.quantity}x ${item.itemName}${item.optionSummary?.isNotEmpty == true ? '\n${item.optionSummary}' : ''}',
+                              maxLines: 3,
                               style: const TextStyle(fontSize: 13),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -525,6 +559,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   }
 
   String _formatDateTime(DateTime dateTime) {
+    dateTime = dateTime.toLocal();
     final date = _formatDate(dateTime);
     final hour = dateTime.hour.toString().padLeft(2, '0');
     final minute = dateTime.minute.toString().padLeft(2, '0');

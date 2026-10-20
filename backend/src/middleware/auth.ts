@@ -49,7 +49,9 @@ export async function authenticate(
   if (decoded.role === 'owner') {
     try {
       const result = await pool.query(
-        'SELECT status FROM owners WHERE id = $1',
+        process.env.OWNER_EMAIL_SIGNUP_ENABLED === 'true'
+          ? 'SELECT status, requires_google_link FROM owners WHERE id = $1'
+          : 'SELECT status FROM owners WHERE id = $1',
         [decoded.sub]
       );
 
@@ -72,6 +74,14 @@ export async function authenticate(
             message: 'Your account has been disabled. Please contact support.',
           },
         });
+        return;
+      }
+      if (result.rows[0].requires_google_link === true &&
+          req.originalUrl.startsWith('/api/owner') &&
+          !/^\/api\/owner\/(restaurant|notifications)(\/|\?|$)/.test(req.originalUrl)) {
+        res.status(403).json({ success: false, error: {
+          code: 'GOOGLE_CONNECTION_REQUIRED', message: 'Connect your matching Google account first',
+        } });
         return;
       }
     } catch {

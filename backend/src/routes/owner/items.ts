@@ -1,4 +1,8 @@
 import { Router, Response, NextFunction } from 'express';
+import multer from 'multer';
+import { ValidationError } from '../../errors';
+import { setMenuEmoji, uploadMenuImage } from '../../services/menuMediaService';
+import { saveMenuOptions } from '../../services/menuOptionsService';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { getRestaurantIdForOwner } from '../../services/categoryService';
 import {
@@ -11,6 +15,32 @@ import {
 } from '../../services/foodItemService';
 
 const router = Router();
+
+router.put('/items/:id/options', async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const restaurantId = await getRestaurantIdForOwner(req.user!.sub);
+    res.json({ success: true, data: { item: await saveMenuOptions(req.params.id as string, restaurantId, req.body) } });
+  } catch (error) { next(error); }
+});
+
+const imageUpload = multer({ storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 0, parts: 1 } }).single('image');
+
+router.post('/items/:id/image', (req, res, next) => {
+  imageUpload(req, res, error => next(error ? new ValidationError('Choose one image up to 5MB') : undefined));
+}, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const restaurantId = await getRestaurantIdForOwner(req.user!.sub);
+    res.json({ success: true, data: { item: await uploadMenuImage(req.params.id as string, restaurantId, req.file) } });
+  } catch (error) { next(error); }
+});
+
+router.put('/items/:id/media', async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const restaurantId = await getRestaurantIdForOwner(req.user!.sub);
+    res.json({ success: true, data: { item: await setMenuEmoji(req.params.id as string, restaurantId, req.body?.emoji) } });
+  } catch (error) { next(error); }
+});
 
 /**
  * POST /api/owner/items

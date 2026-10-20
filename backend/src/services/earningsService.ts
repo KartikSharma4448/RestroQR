@@ -1,4 +1,5 @@
 import pool from '../config/database';
+import { ValidationError } from '../errors';
 
 /**
  * Monthly summary result for a restaurant's earnings.
@@ -145,11 +146,18 @@ export async function getEarningsBreakdown(
  */
 export async function getOrderHistory(
   restaurantId: string,
-  options: { page?: number; pageSize?: number; status?: string }
+  options: { page?: number; pageSize?: number; status?: string; startDate?: string; endDate?: string }
 ): Promise<OrderHistoryResult> {
-  const page = options.page && options.page > 0 ? options.page : 1;
-  const pageSize = options.pageSize && options.pageSize > 0 ? options.pageSize : 20;
+  const page = Number.isSafeInteger(options.page) && options.page! > 0 ? options.page! : 1;
+  const pageSize = Number.isSafeInteger(options.pageSize) && options.pageSize! > 0
+    ? Math.min(options.pageSize!, 100) : 20;
   const offset = (page - 1) * pageSize;
+
+  const startDate = validateHistoryDate(options.startDate, 'startDate');
+  const endDate = validateHistoryDate(options.endDate, 'endDate');
+  if (startDate && endDate && startDate >= endDate) {
+    throw new ValidationError('startDate must be earlier than endDate');
+  }
 
   let whereClause = 'WHERE o.restaurant_id = $1';
   const params: unknown[] = [restaurantId];
@@ -159,6 +167,15 @@ export async function getOrderHistory(
     whereClause += ` AND o.status = $${paramIndex}`;
     params.push(options.status);
     paramIndex++;
+  }
+
+  if (startDate) {
+    whereClause += ` AND o.created_at >= $${paramIndex++}`;
+    params.push(startDate);
+  }
+  if (endDate) {
+    whereClause += ` AND o.created_at < $${paramIndex++}`;
+    params.push(endDate);
   }
 
   // Get total count
@@ -185,7 +202,7 @@ export async function getOrderHistory(
      FROM orders o
      LEFT JOIN tables t ON o.table_id = t.id
      ${whereClause}
-     ORDER BY o.created_at DESC
+     ORDER BY o.created_at DESC, o.id DESC
      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
     orderParams
   );
@@ -215,20 +232,59 @@ export async function getOrderHistory(
   };
 }
 
+// UTC instants let the app filter local calendar days without server timezone assumptions.
+function validateHistoryDate(value: string | undefined, field: string): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z$/.test(value)) {
+    throw new ValidationError(`${field} must be a UTC ISO timestamp`);
+  }
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 19) !== value.slice(0, 19)) {
+    throw new ValidationError(`${field} must be a valid timestamp`);
+  }
+  return date.toISOString();
+}
+
 /**
  * Returns per-item analytics (quantity sold and revenue) for a restaurant.
  * Only includes items from orders with status 'payment_received'.
  *
  * @param restaurantId - The restaurant UUID
- * @param period - 'daily' | 'weekly' | 'monthly' (used with month to define the time range)
+ * @param period - 'daily' | 'weekly' | 'monthly'
  * @param month - Month in "YYYY-MM" format (e.g., "2025-01")
+ * @param bounds - Optional UTC boundaries for the owner's local calendar period.
+ * Legacy callers without bounds use the first day/week containing the month's first day.
  */
 export async function getItemAnalytics(
   restaurantId: string,
-  _period: 'daily' | 'weekly' | 'monthly',
-  month: string
+  period: 'daily' | 'weekly' | 'monthly',
+  month: string,
+  bounds: { startDate?: string; endDate?: string } = {}
 ): Promise<ItemAnalyticsResult> {
-  const { startDate, endDate } = getMonthRange(month);
+  let { startDate, endDate } = getMonthRange(month);
+  if (bounds.startDate !== undefined || bounds.endDate !== undefined) {
+    const start = validateHistoryDate(bounds.startDate, 'startDate');
+    const end = validateHistoryDate(bounds.endDate, 'endDate');
+    if (!start || !end || start >= end) {
+      throw new ValidationError('Provide startDate and endDate with startDate earlier than endDate');
+    }
+    const duration = new Date(end).getTime() - new Date(start).getTime();
+    const maxDays = period === 'daily' ? 2 : period === 'weekly' ? 8 : 32;
+    if (duration > maxDays * 86400000) {
+      throw new ValidationError('Date range is too long for the selected period');
+    }
+    startDate = start;
+    endDate = end;
+  } else if (period !== 'monthly') {
+    const start = new Date(startDate);
+    if (period === 'weekly') {
+      start.setUTCDate(start.getUTCDate() - (start.getUTCDay() + 6) % 7);
+    }
+    const end = new Date(start);
+    end.setUTCDate(end.getUTCDate() + (period === 'daily' ? 1 : 7));
+    startDate = start.toISOString();
+    endDate = end.toISOString();
+  }
 
   const result = await pool.query(
     `SELECT

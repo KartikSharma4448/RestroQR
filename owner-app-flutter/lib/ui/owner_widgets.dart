@@ -14,12 +14,14 @@ class BrandHeading extends StatelessWidget {
         height: compact ? 32 : 44,
       ),
       const SizedBox(width: 12),
-      Text(
-        'RestroQR',
-        style: TextStyle(
-          fontSize: compact ? 20 : 24,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0,
+      Flexible(
+        child: Text(
+          'RestroQR',
+          style: TextStyle(
+            fontSize: compact ? 20 : 24,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0,
+          ),
         ),
       ),
     ],
@@ -73,8 +75,21 @@ class SectionHeading extends StatelessWidget {
   const SectionHeading(this.title, {super.key});
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 28, bottom: 12),
-    child: Text(title, style: Theme.of(context).textTheme.titleMedium),
+    padding: const EdgeInsets.only(top: 26, bottom: 12),
+    child: Row(
+      children: [
+        Container(width: 3, height: 14, color: AppColors.coral),
+        const SizedBox(width: 9),
+        Expanded(
+          child: Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ),
+      ],
+    ),
   );
 }
 
@@ -99,7 +114,15 @@ class ActionRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 17),
         child: Row(
           children: [
-            Icon(icon, size: 22, color: AppColors.muted),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.accentSoft,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Icon(icon, size: 19, color: AppColors.accent),
+            ),
             const SizedBox(width: 14),
             Expanded(
               child: Text(
@@ -111,8 +134,10 @@ class ActionRow extends StatelessWidget {
             ),
             if (detail != null)
               Flexible(
+                fit: FlexFit.tight,
                 child: Text(
                   detail!,
+                  textAlign: TextAlign.end,
                   style: const TextStyle(color: AppColors.muted),
                 ),
               ),
@@ -148,7 +173,15 @@ class OwnerEmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: AppColors.muted, size: 40),
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: AppColors.accentSoft,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: AppColors.accent, size: 32),
+            ),
             const SizedBox(height: 20),
             Text(
               title,

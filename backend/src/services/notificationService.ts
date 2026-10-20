@@ -46,6 +46,16 @@ export async function unregisterFcmToken(ownerId: string): Promise<void> {
   await pool.query('DELETE FROM fcm_tokens WHERE owner_id = $1', [ownerId]);
 }
 
+export async function sendWaiterNotification(restaurantId: string,tableName: string,callId: string): Promise<void> {
+  try {
+    const result=await pool.query(`SELECT ft.token FROM fcm_tokens ft JOIN restaurants r ON r.owner_id=ft.owner_id WHERE r.id=$1`,[restaurantId]);
+    if (!result.rows.length) return;
+    await getMessaging(app).send({token:result.rows[0].token,
+      notification:{title:'Waiter requested',body:`${tableName} needs assistance`},
+      data:{type:'waiter_call',callId,tableName},android:{priority:'high'}});
+  } catch { console.error('Waiter notification delivery failed'); }
+}
+
 /**
  * Sends an FCM push notification to the restaurant owner when a new order is placed.
  * Looks up the owner's FCM token via the restaurant, sends a push with table name and total.

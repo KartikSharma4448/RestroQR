@@ -3,6 +3,8 @@ import { createOrder } from '../../services/orderService';
 import { sendOrderNotification } from '../../services/notificationService';
 import { ValidationError } from '../../errors';
 import pool from '../../config/database';
+import { customerEmailOrderingEnabled, orderLifecycleEmailEnabled } from '../../services/customerOrderEmailService';
+import { issueOrderPayment, orderPaymentsEnabled } from '../../services/orderPaymentService';
 
 const router = Router();
 
@@ -18,7 +20,7 @@ const router = Router();
  */
 router.post('/orders', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { tableToken, items, customerName, customerPhone } = req.body ?? {};
+    const { tableToken, items, customerName, customerPhone, customerEmail, requestId } = req.body ?? {};
 
     // Validate required fields
     if (!tableToken || typeof tableToken !== 'string') {
@@ -55,7 +57,7 @@ router.post('/orders', async (req: Request, res: Response, next: NextFunction) =
     }
 
     // Create the order (handles token decryption, validation, price calculation, and customer details)
-    const order = await createOrder(
+    const order = customerEmailOrderingEnabled() ? await createOrder(tableToken, items, customerName?.trim(), customerPhone?.trim(), { customerEmail, requestId }) : await createOrder(
       tableToken,
       items,
       customerName?.trim(),
@@ -64,7 +66,7 @@ router.post('/orders', async (req: Request, res: Response, next: NextFunction) =
 
     // Fire-and-forget: send push notification to the restaurant owner
     // Fetch table display name for the notification
-    pool
+    if (!order.replayed) pool
       .query('SELECT display_name FROM tables WHERE id = $1', [order.tableId])
       .then((tableResult) => {
         const tableName = tableResult.rows[0]?.display_name || 'Unknown Table';
@@ -76,6 +78,8 @@ router.post('/orders', async (req: Request, res: Response, next: NextFunction) =
         // If table lookup fails, skip notification silently
       });
 
+    // Capability tokens must never enter shared caches.
+    if (orderPaymentsEnabled()) res.set('Cache-Control','no-store');
     // Return 201 with order confirmation
     res.status(201).json({
       success: true,
@@ -83,10 +87,13 @@ router.post('/orders', async (req: Request, res: Response, next: NextFunction) =
         orderRef: order.orderRef,
         total: order.total,
         status: order.status,
+        ...(customerEmailOrderingEnabled() ? { emailConfirmation: orderLifecycleEmailEnabled() ? 'on_acceptance' : 'queued' } : {}),
+        ...(orderPaymentsEnabled() ? { payment: await issueOrderPayment(order.id) } : {}),
         items: order.items.map((item) => ({
           name: item.itemName,
           quantity: item.quantity,
           price: item.itemPrice,
+          ...(item.optionSummary ? { optionSummary: item.optionSummary } : {}),
         })),
       },
     });

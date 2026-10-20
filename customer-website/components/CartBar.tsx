@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ArrowRight, Minus, Plus, X } from 'lucide-react';
-import { useCart } from './CartContext';
+import { MAX_ITEM_QUANTITY, useCart } from './CartContext';
 import useDialog from './useDialog';
 
 export default function CartBar() {
@@ -66,6 +66,7 @@ export default function CartBar() {
                     </span>
                     <div>
                       <p className="text-sm font-semibold text-slate-800 leading-tight">{item.name}</p>
+                      {item.optionSummary && <p className="mt-1 break-words text-xs text-slate-600">{item.optionSummary}</p>}
                       <p className="text-xs text-slate-500 font-bold mt-1">₹{item.price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
                     </div>
                   </div>
@@ -85,8 +86,10 @@ export default function CartBar() {
                     </span>
                     <button
                       type="button"
-                      onClick={() => addItem({ id: item.id, name: item.name, price: item.price, badge: item.badge })}
-                      className="flex h-11 w-11 items-center justify-center text-white hover:bg-teal-800 active:scale-90 transition-all"
+                      onClick={() => addItem(item)}
+                      disabled={item.quantity >= MAX_ITEM_QUANTITY}
+                      title={item.quantity >= MAX_ITEM_QUANTITY ? `Maximum quantity: ${MAX_ITEM_QUANTITY}` : 'Increase quantity'}
+                      className="flex h-11 w-11 items-center justify-center text-white hover:bg-teal-800 active:scale-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       aria-label={`Increase ${item.name}`}
                     >
                       <Plus size={16} aria-hidden="true" />

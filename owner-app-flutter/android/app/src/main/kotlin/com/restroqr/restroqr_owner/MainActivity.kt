@@ -4,6 +4,9 @@ import android.app.Activity
 import android.content.ContentValues
 import android.content.Intent
 import android.net.Uri
+import android.media.AudioAttributes
+import android.media.MediaPlayer
+import android.media.RingtoneManager
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -17,9 +20,41 @@ class MainActivity : FlutterActivity() {
     private var pendingResult: MethodChannel.Result? = null
     private var pendingBytes: ByteArray? = null
     private val saveRequest = 4701
+    private var waiterPlayer: MediaPlayer? = null
+    private var activityResumed = false
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "restroqr/waiter_alarm")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "start" -> {
+                        if (!activityResumed || waiterPlayer != null) {
+                            result.success(null)
+                        } else {
+                            val player = MediaPlayer()
+                            try {
+                                val tone = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+                                player.setAudioAttributes(AudioAttributes.Builder()
+                                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
+                                player.setDataSource(this, tone)
+                                player.isLooping = true
+                                player.prepare()
+                                player.start()
+                                waiterPlayer = player
+                                result.success(null)
+                            } catch (_: Exception) {
+                                player.release()
+                                result.error("SOUND_UNAVAILABLE", "Notification sound unavailable", null)
+                            }
+                        }
+                    }
+                    "stop" -> { stopWaiterSound(); result.success(null) }
+                    else -> result.notImplemented()
+                }
+            }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "restroqr/qr_storage")
             .setMethodCallHandler { call, result ->
                 if (call.method != "saveQr") {
@@ -113,7 +148,24 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    private fun stopWaiterSound() {
+        waiterPlayer?.let { player -> runCatching { player.stop() }; player.release() }
+        waiterPlayer = null
+    }
+
+    override fun onResume() {
+        super.onResume()
+        activityResumed = true
+    }
+
+    override fun onPause() {
+        activityResumed = false
+        stopWaiterSound()
+        super.onPause()
+    }
+
     override fun onDestroy() {
+        stopWaiterSound()
         if (pendingResult != null) finishSave(null)
         writer.shutdown()
         super.onDestroy()

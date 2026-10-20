@@ -9,10 +9,19 @@ import {
 } from '../../services/orderService';
 
 import { ValidationError } from '../../errors';
+import { getOwnerPaymentProof } from '../../services/orderPaymentService';
 
 const router = Router();
 
 const VALID_ORDER_STATUSES: OrderStatus[] = ['pending', 'accepted', 'completed', 'payment_received', 'cancelled'];
+
+router.get('/orders/:id/payment', async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  res.set('Cache-Control','no-store');
+  try {
+    const restaurantId = await getRestaurantIdForOwner(req.user!.sub);
+    res.json({ success: true, data: await getOwnerPaymentProof(req.params.id as string, restaurantId) });
+  } catch (error) { next(error); }
+});
 
 /**
  * GET /api/owner/orders

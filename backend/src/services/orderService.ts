@@ -1,7 +1,14 @@
 import crypto from 'crypto';
+import { loyaltyEnabled, reviewsEnabled, recordPaidEngagement } from './customerEngagementService';
+import { orderPaymentsEnabled } from './orderPaymentService';
 import pool from '../config/database';
 import { ValidationError, NotFoundError, ConflictError } from '../errors';
 import { decryptTableToken } from './tableService';
+import { getRestaurantOrderingState, profileActivationEnabled } from './restaurantProfileService';
+import { menuOptionsEnabled, validateOptionSelections, priceLockedSelections, optionSummary, type OptionSnapshot } from './menuOptionsService';
+import { customerEmailOrderingEnabled, validateCustomerEmail, validateOrderRequestId, orderFingerprint,
+  checkCustomerEmailLimit, queueOrderConfirmation, paymentReceiptEmailEnabled, queuePaymentReceipt,
+  orderLifecycleEmailEnabled, queueOrderStatusEmail } from './customerOrderEmailService';
 
 // --- Types ---
 
@@ -10,6 +17,8 @@ export type OrderStatus = 'pending' | 'accepted' | 'completed' | 'payment_receiv
 export interface OrderItemInput {
   itemId: string;
   quantity: number;
+  variantId?: string;
+  addOnIds?: string[];
 }
 
 export interface OrderItemRecord {
@@ -20,9 +29,12 @@ export interface OrderItemRecord {
   itemPrice: string;
   quantity: number;
   createdAt: string;
+  selectedOptions?: OptionSnapshot | null;
+  optionSummary?: string;
 }
 
 export interface OrderRecord {
+  paymentSummary?: { choice: string; transactionId: string | null } | null;
   id: string;
   restaurantId: string;
   tableId: string;
@@ -82,6 +94,7 @@ function generateOrderRef(): string {
  */
 function mapOrderRow(row: Record<string, unknown>): OrderRecord {
   return {
+    ...(row.payment_summary !== undefined ? { paymentSummary: row.payment_summary as OrderRecord['paymentSummary'] } : {}),
     id: row.id as string,
     restaurantId: row.restaurant_id as string,
     tableId: row.table_id as string,
@@ -111,6 +124,8 @@ function mapOrderItemRow(row: Record<string, unknown>): OrderItemRecord {
     itemName: row.item_name as string,
     itemPrice: row.item_price as string,
     quantity: row.quantity as number,
+    ...(row.selected_options ? { selectedOptions: row.selected_options as OptionSnapshot,
+      optionSummary: optionSummary(row.selected_options as OptionSnapshot) } : {}),
     createdAt: (row.created_at as Date).toISOString(),
   };
 }
@@ -130,8 +145,9 @@ export async function createOrder(
   tableToken: string,
   items: OrderItemInput[],
   customerName?: string,
-  customerPhone?: string
-): Promise<OrderRecord & { items: OrderItemRecord[] }> {
+  customerPhone?: string,
+  checkout?: { customerEmail: unknown; requestId: unknown }
+): Promise<OrderRecord & { items: OrderItemRecord[]; replayed?: boolean }> {
   // Validate items array is not empty
   if (!Array.isArray(items) || items.length === 0 || items.length > 50) {
     throw new ValidationError('At least one item is required', [
@@ -148,9 +164,8 @@ export async function createOrder(
       ]);
     }
   }
-  if (new Set(items.map(item => item.itemId)).size !== items.length) {
-    throw new ValidationError('Duplicate item IDs are not allowed');
-  }
+  validateOptionSelections(items);
+  if (menuOptionsEnabled()) items = items.map(item => ({ ...item, itemId: item.itemId.toLowerCase() }));
 
   if (customerName !== undefined && (typeof customerName !== 'string' || customerName.trim().length > 100)) {
     throw new ValidationError('Customer name must be a string of at most 100 characters');
@@ -158,9 +173,17 @@ export async function createOrder(
   if (customerPhone !== undefined && (typeof customerPhone !== 'string' || !/^\d{10}$/.test(customerPhone.trim()))) {
     throw new ValidationError('Phone must be exactly 10 digits');
   }
+  const emailFlow = customerEmailOrderingEnabled();
+  const email = emailFlow ? validateCustomerEmail(checkout?.customerEmail) : null;
+  const requestId = emailFlow ? validateOrderRequestId(checkout?.requestId) : null;
+  if (emailFlow) customerName = customerName?.trim() || 'Guest';
 
   // Decrypt table token — throws NotFoundError('Menu not found') on failure
   const { restaurantId, tableId } = decryptTableToken(tableToken);
+  const fingerprint = emailFlow ? orderFingerprint({ restaurantId, tableId, email, name: customerName,
+    phone: customerPhone?.trim() || null, items: items.map(item => ({ id: item.itemId.toLowerCase(),
+      quantity: item.quantity, variantId: item.variantId?.toLowerCase() || null,
+      addOnIds: [...(item.addOnIds || [])].map(id => id.toLowerCase()).sort() })).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))) }) : null;
 
   // Validate restaurant exists and qr_mode is 'multi'
   const restaurantResult = await pool.query(
@@ -172,8 +195,20 @@ export async function createOrder(
       restaurantResult.rows[0].status !== 'active' || restaurantResult.rows[0].owner_status !== 'active') {
     throw new NotFoundError('Menu not found');
   }
+  if (requestId) {
+    const prior = (await pool.query('SELECT * FROM orders WHERE client_request_id=$1', [requestId])).rows[0];
+    if (prior) {
+      if (prior.request_fingerprint !== fingerprint) throw new ConflictError('This checkout request was already used. Start a new checkout.');
+      const savedItems = (await pool.query('SELECT * FROM order_items WHERE order_id=$1 ORDER BY created_at,id', [prior.id])).rows;
+      return { ...mapOrderRow(prior), items: savedItems.map(mapOrderItemRow), replayed: true };
+    }
+  }
 
   // Validate table exists
+  if (profileActivationEnabled() && !(await getRestaurantOrderingState(restaurantId)).orderingEnabled) {
+    throw new ConflictError('This restaurant is not accepting new orders yet');
+  }
+
   const tableResult = await pool.query(
     'SELECT id FROM tables WHERE id = $1 AND restaurant_id = $2',
     [tableId, restaurantId]
@@ -234,7 +269,7 @@ export async function createOrder(
 
   // Calculate total server-side
   let totalCents = 0;
-  for (const item of items) {
+  for (const item of menuOptionsEnabled() ? [] : items) {
     const found = foundItems.get(item.itemId)!;
     const priceCents = Math.round(Number(found.price) * 100);
     if (!Number.isSafeInteger(priceCents) || priceCents < 0) {
@@ -245,7 +280,7 @@ export async function createOrder(
   if (!Number.isSafeInteger(totalCents) || totalCents > 9999999999) {
     throw new ValidationError('Order total exceeds the supported limit');
   }
-  const total = totalCents / 100;
+  let total = totalCents / 100;
 
   // Generate unique order_ref with retry logic
   let orderRef = generateOrderRef();
@@ -256,6 +291,30 @@ export async function createOrder(
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    if (email && requestId) {
+      await client.query("SELECT pg_advisory_xact_lock(hashtextextended('order-request:' || $1,0))", [requestId]);
+      const prior = (await client.query('SELECT * FROM orders WHERE client_request_id=$1', [requestId])).rows[0];
+      if (prior) {
+        if (prior.request_fingerprint !== fingerprint) throw new ConflictError('This checkout request was already used. Start a new checkout.');
+        const savedItems = (await client.query('SELECT * FROM order_items WHERE order_id=$1 ORDER BY created_at,id', [prior.id])).rows;
+        await client.query('COMMIT');
+        return { ...mapOrderRow(prior), items: savedItems.map(mapOrderItemRow), replayed: true };
+      }
+      await checkCustomerEmailLimit(client, email);
+    }
+
+    // Hold profile/account locks through order insertion so concurrent setup or
+    // disable changes cannot slip between the activation check and commit.
+    if (profileActivationEnabled() && !(await getRestaurantOrderingState(restaurantId, client, true)).orderingEnabled) {
+      throw new ConflictError('This restaurant is not accepting new orders yet');
+    }
+
+    const configured = menuOptionsEnabled() ? await priceLockedSelections(client, restaurantId, items) : null;
+    if (configured) {
+      const cents = configured.reduce((sum, line, index) => sum + line.cents * items[index].quantity, 0);
+      if (!Number.isSafeInteger(cents) || cents > 9999999999) throw new ValidationError('Order total exceeds the supported limit');
+      total = cents / 100;
+    }
 
     // Ensure order_ref is unique
     while (retries < maxRetries) {
@@ -270,27 +329,31 @@ export async function createOrder(
 
     // Insert order
     const orderResult = await client.query(
-      `INSERT INTO orders (restaurant_id, table_id, order_ref, status, total, customer_name, customer_phone)
-       VALUES ($1, $2, $3, 'pending', $4, $5, $6)
+      `INSERT INTO orders (restaurant_id, table_id, order_ref, status, total, customer_name, customer_phone${emailFlow ? ',customer_email,client_request_id,request_fingerprint' : ''})
+       VALUES ($1, $2, $3, 'pending', $4, $5, $6${emailFlow ? ',$7,$8,$9' : ''})
        RETURNING id, restaurant_id, table_id, order_ref, status, total, created_at, accepted_at, completed_at, payment_received_at, cancelled_at, updated_at, customer_name, customer_phone`,
-      [restaurantId, tableId, orderRef, total.toFixed(2), customerName || null, customerPhone || null]
+      [restaurantId, tableId, orderRef, total.toFixed(2), customerName || null, customerPhone || null,
+        ...(emailFlow ? [email, requestId, fingerprint] : [])]
     );
 
     const order = mapOrderRow(orderResult.rows[0]);
 
     // Insert order_items with price snapshots
     const orderItems: OrderItemRecord[] = [];
-    for (const item of items) {
+    for (const [index, item] of items.entries()) {
       const found = foundItems.get(item.itemId)!;
+      const line = configured?.[index];
       const itemResult = await client.query(
-        `INSERT INTO order_items (order_id, food_item_id, item_name, item_price, quantity)
-         VALUES ($1, $2, $3, $4, $5)
-         RETURNING id, order_id, food_item_id, item_name, item_price, quantity, created_at`,
-        [order.id, item.itemId, found.name, found.price, item.quantity]
+        `INSERT INTO order_items (order_id, food_item_id, item_name, item_price, quantity${line ? ', selected_options' : ''})
+         VALUES ($1, $2, $3, $4, $5${line ? ', $6::jsonb' : ''})
+         RETURNING id, order_id, food_item_id, item_name, item_price, quantity, created_at${line ? ', selected_options' : ''}`,
+        [order.id, item.itemId, line?.name ?? found.name, line?.price ?? found.price, item.quantity,
+          ...(line ? [JSON.stringify(line.snapshot)] : [])]
       );
       orderItems.push(mapOrderItemRow(itemResult.rows[0]));
     }
 
+    if (email && !orderLifecycleEmailEnabled()) await queueOrderConfirmation(client, email, restaurantId, { ...order, items: orderItems });
     await client.query('COMMIT');
 
     return { ...order, items: orderItems };
@@ -336,6 +399,7 @@ export async function getOrders(
     `SELECT o.id, o.restaurant_id, o.table_id, o.order_ref, o.status, o.total,
             o.created_at, o.accepted_at, o.completed_at, o.payment_received_at,
             o.cancelled_at, o.updated_at, o.customer_name, o.customer_phone, t.display_name
+            ${orderPaymentsEnabled() ? ", (SELECT json_build_object('choice',p.choice,'transactionId',p.transaction_id) FROM order_payment_choices p WHERE p.order_id=o.id) AS payment_summary" : ''}
      FROM orders o
      LEFT JOIN tables t ON o.table_id = t.id
      ${whereClause}
@@ -350,7 +414,7 @@ export async function getOrders(
   if (orders.length > 0) {
     const orderIds = orders.map((o) => o.id);
     const itemsResult = await pool.query(
-      `SELECT id, order_id, food_item_id, item_name, item_price, quantity, created_at
+      `SELECT id, order_id, food_item_id, item_name, item_price, quantity, created_at${menuOptionsEnabled() ? ', selected_options' : ''}
        FROM order_items
        WHERE order_id = ANY($1::uuid[])
        ORDER BY created_at ASC`,
@@ -388,6 +452,10 @@ export async function updateOrderStatus(
   restaurantId: string,
   newStatus: OrderStatus
 ): Promise<OrderRecord> {
+  if ((newStatus === 'payment_received' && (paymentReceiptEmailEnabled() || loyaltyEnabled() || reviewsEnabled())) ||
+      (orderLifecycleEmailEnabled() && (newStatus === 'accepted' || newStatus === 'completed'))) {
+    return updateOrderWithEmail(orderId, restaurantId, newStatus);
+  }
   // Fetch current order
   const orderResult = await pool.query(
     `SELECT o.id, o.restaurant_id, o.table_id, o.order_ref, o.status, o.total,
@@ -439,6 +507,45 @@ export async function updateOrderStatus(
   );
 
   return mapOrderRow(updatedResult.rows[0]);
+}
+
+async function updateOrderWithEmail(orderId: string, restaurantId: string, newStatus: OrderStatus): Promise<OrderRecord> {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const row = (await client.query(`SELECT o.*,t.display_name FROM orders o
+      LEFT JOIN tables t ON o.table_id=t.id WHERE o.id=$1 AND o.restaurant_id=$2 FOR UPDATE OF o`,
+    [orderId, restaurantId])).rows[0];
+    if (!row) throw new NotFoundError('Order not found');
+    // Repeated status confirmation is a no-op; only the first transaction queues email.
+    if (row.status === newStatus) {
+      await client.query('COMMIT');
+      return mapOrderRow(row);
+    }
+    if (!(VALID_TRANSITIONS[row.status] || []).includes(newStatus)) {
+      const error = new ValidationError(`Cannot transition from '${row.status}' to '${newStatus}'`);
+      (error as unknown as { code: string }).code = 'INVALID_TRANSITION';
+      throw error;
+    }
+    const paid = (await client.query(`UPDATE orders SET status=$3,${STATUS_TIMESTAMP_MAP[newStatus]}=NOW(),updated_at=NOW()
+      WHERE id=$1 AND restaurant_id=$2 RETURNING *`, [orderId, restaurantId,newStatus])).rows[0];
+    const receiptLines = newStatus === 'payment_received' && (loyaltyEnabled() || reviewsEnabled())
+      ? await recordPaidEngagement(client,paid) : [];
+    if (row.customer_email) {
+      const items = (await client.query('SELECT * FROM order_items WHERE order_id=$1 ORDER BY created_at,id', [orderId])).rows;
+      const snapshot = {
+        id: row.id, orderRef: row.order_ref, total: row.total, customerName: row.customer_name,
+        tableName: row.display_name, paidAt: paid.payment_received_at, items: items.map(mapOrderItemRow), receiptLines,
+      };
+      if (newStatus === 'payment_received') await queuePaymentReceipt(client,row.customer_email,restaurantId,snapshot);
+      else await queueOrderStatusEmail(client,row.customer_email,restaurantId,snapshot,newStatus === 'accepted' ? 'order-accepted' : 'order-ready');
+    }
+    await client.query('COMMIT');
+    return mapOrderRow({ ...paid, display_name: row.display_name });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally { client.release(); }
 }
 
 /**

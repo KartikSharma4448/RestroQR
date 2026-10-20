@@ -35,7 +35,7 @@ export default function LiveOrderBoard({ restaurantToken }: { restaurantToken: s
     return () => { stopped = true; clearTimeout(timer); controller?.abort(); };
   }, [restaurantToken]);
 
-  return <section className="order-board" aria-labelledby="order-board-heading">
+  return <section id="live-orders" className="order-board" aria-labelledby="order-board-heading" tabIndex={-1}>
     <header className="order-board-header">
       <h2 id="order-board-heading"><Radio size={18} aria-hidden="true" /> Live orders</h2>
       <span role="status">{state === 'connected' ? 'Live' : state === 'loading' ? 'Connecting...' : 'Reconnecting...'}</span>

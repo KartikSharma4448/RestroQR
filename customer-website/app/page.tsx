@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
+import { SITE_URL, HOME_TITLE, HOME_DESCRIPTION, homeSchema } from '@/lib/seo';
 import { ArrowDown, ArrowUpRight, Check, Download, LayoutList, QrCode, ReceiptText, Smartphone, Table2, TrendingUp } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'RestroQR - Digital QR Menus for Restaurants',
-  description: 'Create a digital menu, share restaurant and table QR codes, and manage orders with the RestroQR Android owner app.',
+  title: { absolute: HOME_TITLE },
+  description: HOME_DESCRIPTION,
+  alternates: { canonical: `${SITE_URL}/` },
 };
 
 const features = [
@@ -27,6 +29,7 @@ const apk = '/download/restroqr-owner.apk';
 export default function HomePage() {
   return (
     <main className="intro-site">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(homeSchema).replace(/</g, '\\u003c') }} />
       <a className="skip-link" href="#main-content">Skip to content</a>
       <nav className="intro-nav" aria-label="Main navigation">
         <div className="site-width nav-inner">
@@ -41,14 +44,14 @@ export default function HomePage() {
           <p className="eyebrow">For restaurants &amp; cafes</p>
           <h1>RestroQR</h1>
           <p className="hero-statement">Good food.<br />A simpler way to serve it.</p>
-          <p className="hero-copy">Your menu, tables and orders. Connected with a QR code, managed from your phone.</p>
+          <p className="hero-copy">A free restaurant and cafe management app. Digital QR menus, table orders and revenue tracking, managed from your Android phone.</p>
           <div className="hero-actions"><a className="button button-white" href={apk}><Download size={19} /> Download Android app</a><a className="hero-secondary" href="#screenshots">Explore the app <ArrowDown size={17} /></a></div>
           <p className="hero-footnote">Free to use <span aria-hidden="true">/</span> No customer app needed</p>
         </div>
       </section>
       <div className="intro-strip"><div className="site-width strip-inner"><span><QrCode size={20} /> Scan the QR</span><span><LayoutList size={20} /> Browse the menu</span><span><ReceiptText size={20} /> Order from the table</span></div></div>
       <section id="features" className="intro-section site-width">
-        <div className="section-heading"><div><p className="eyebrow">The everyday essentials</p><h2>Less juggling.<br />More serving.</h2></div><p>Bring the restaurant&apos;s daily work together, from the first scan to the last order.</p></div>
+        <div className="section-heading"><div><p className="eyebrow">The everyday essentials</p><h2>Restaurant and cafe<br />management, simplified.</h2></div><p>Manage your digital menu, table orders and sales from one free Android app.</p></div>
         <div className="feature-grid">{features.map(({ icon: Icon, title, copy }) => <article key={title} className="feature-item"><Icon size={25} strokeWidth={1.7} /><h3>{title}</h3><p>{copy}</p></article>)}</div>
       </section>
       <section id="screenshots" className="screens-section">

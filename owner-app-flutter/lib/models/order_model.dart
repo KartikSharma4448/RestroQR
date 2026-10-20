@@ -15,6 +15,7 @@ class OrderData {
 
   final String? customerName;
   final String? customerPhone;
+  final Map<String, dynamic>? paymentSummary;
 
   OrderData({
     required this.id,
@@ -30,6 +31,7 @@ class OrderData {
     this.cancelledAt,
     this.customerName,
     this.customerPhone,
+    this.paymentSummary,
   });
 
   factory OrderData.fromJson(Map<String, dynamic> json) {
@@ -44,34 +46,42 @@ class OrderData {
           json['tableDisplayName'] ?? json['table_display_name'] ?? '',
       items: json['items'] != null
           ? (json['items'] as List)
-              .map((item) =>
-                  OrderItemData.fromJson(item as Map<String, dynamic>))
-              .toList()
+                .map(
+                  (item) =>
+                      OrderItemData.fromJson(item as Map<String, dynamic>),
+                )
+                .toList()
           : [],
       createdAt: DateTime.parse(
-          json['createdAt'] ?? json['created_at'] ?? DateTime.now().toIso8601String()),
+        json['createdAt'] ??
+            json['created_at'] ??
+            DateTime.now().toIso8601String(),
+      ),
       acceptedAt: json['acceptedAt'] != null
           ? DateTime.parse(json['acceptedAt'])
           : json['accepted_at'] != null
-              ? DateTime.parse(json['accepted_at'])
-              : null,
+          ? DateTime.parse(json['accepted_at'])
+          : null,
       completedAt: json['completedAt'] != null
           ? DateTime.parse(json['completedAt'])
           : json['completed_at'] != null
-              ? DateTime.parse(json['completed_at'])
-              : null,
+          ? DateTime.parse(json['completed_at'])
+          : null,
       paymentReceivedAt: json['paymentReceivedAt'] != null
           ? DateTime.parse(json['paymentReceivedAt'])
           : json['payment_received_at'] != null
-              ? DateTime.parse(json['payment_received_at'])
-              : null,
+          ? DateTime.parse(json['payment_received_at'])
+          : null,
       cancelledAt: json['cancelledAt'] != null
           ? DateTime.parse(json['cancelledAt'])
           : json['cancelled_at'] != null
-              ? DateTime.parse(json['cancelled_at'])
-              : null,
+          ? DateTime.parse(json['cancelled_at'])
+          : null,
       customerName: json['customerName'] ?? json['customer_name'],
       customerPhone: json['customerPhone'] ?? json['customer_phone'],
+      paymentSummary: json['paymentSummary'] is Map
+          ? Map<String, dynamic>.from(json['paymentSummary'])
+          : null,
     );
   }
 
@@ -90,6 +100,7 @@ class OrderData {
       'cancelledAt': cancelledAt?.toIso8601String(),
       'customerName': customerName,
       'customerPhone': customerPhone,
+      if (paymentSummary != null) 'paymentSummary': paymentSummary,
     };
   }
 }

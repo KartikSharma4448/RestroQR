@@ -1,6 +1,7 @@
 import { customAlphabet } from 'nanoid';
 import { v2 as cloudinary } from 'cloudinary';
 import pool from '../config/database';
+import { profileActivationEnabled } from './restaurantProfileService';
 import {
   ValidationError,
   ValidationDetail,
@@ -165,8 +166,8 @@ export async function createRestaurant(input: CreateRestaurantInput): Promise<Re
 
   // Insert restaurant record
   const result = await pool.query(
-    `INSERT INTO restaurants (owner_id, name, address, phone, restaurant_token, status)
-     VALUES ($1, $2, $3, $4, $5, 'active')
+    `INSERT INTO restaurants (owner_id, name, address, phone, restaurant_token, status${profileActivationEnabled() ? ', onboarding_required' : ''})
+     VALUES ($1, $2, $3, $4, $5, 'active'${profileActivationEnabled() ? ', true' : ''})
      RETURNING id, owner_id, name, address, phone, logo_url, cover_image_url, restaurant_token, status, qr_mode, created_at, updated_at`,
     [input.ownerId, input.name.trim(), input.address.trim(), input.phone.trim(), restaurantToken]
   );

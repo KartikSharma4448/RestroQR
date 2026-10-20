@@ -1,6 +1,5 @@
 # RestroQR - Digital QR Menu Platform
 User-agent: *
 Allow: /
-Disallow: /error
 
-Sitemap: https://restro-qr-peach.vercel.app/sitemap.xml
+Sitemap: https://restroqr.thekartiksharma.in/sitemap.xml

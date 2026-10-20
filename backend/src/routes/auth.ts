@@ -1,8 +1,46 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { authRateLimiter } from '../middleware/rateLimiter';
 import { registerOwner, login } from '../services/authService';
+import { authenticate, requireRole, AuthenticatedRequest } from '../middleware/auth';
+import { linkOwnerGoogle, loginOwnerGoogle } from '../services/ownerGoogleAuthService';
+import { emailSignupEnabled, startOwnerSignup, verifyOwnerSignup, resendOwnerSignup } from '../services/ownerSignupService';
+import pool from '../config/database';
 
 const router = Router();
+
+router.get('/onboarding', authenticate, requireRole('owner'),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const owner = emailSignupEnabled() ? (await pool.query(
+        'SELECT requires_google_link FROM owners WHERE id=$1', [req.user!.sub],
+      )).rows[0] : null;
+      res.json({ success: true, data: { googleConnectionRequired: owner?.requires_google_link === true } });
+    } catch (error) { next(error); }
+  });
+
+router.post('/register/verify', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    res.status(201).json({ success: true, data: await verifyOwnerSignup(req.body?.challengeId, req.body?.code) });
+  } catch (error) { next(error); }
+});
+
+router.post('/register/resend', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    res.json({ success: true, data: await resendOwnerSignup(req.body?.challengeId) });
+  } catch (error) { next(error); }
+});
+
+router.post('/google/login', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    res.json({ success: true, data: await loginOwnerGoogle(req.body?.idToken) });
+  } catch (error) { next(error); }
+});
+
+router.post('/google/link', authenticate, requireRole('owner'),
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      res.json({ success: true, data: await linkOwnerGoogle(req.user!.sub, req.body?.idToken) });
+    } catch (error) { next(error); }
+  });
 
 /**
  * POST /api/auth/register
@@ -10,9 +48,11 @@ const router = Router();
  */
 router.post('/register', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, phone, password, name } = req.body;
+    const { email, phone, password, name } = req.body ?? {};
 
-    const result = await registerOwner({ email, phone, password, name });
+    const result = emailSignupEnabled()
+      ? await startOwnerSignup({ email, phone, password, name })
+      : await registerOwner({ email, phone, password, name });
 
     res.status(201).json({
       success: true,
@@ -29,7 +69,6 @@ router.post('/register', async (req: Request, res: Response, next: NextFunction)
  */
 router.post(
   '/login',
-  authRateLimiter,
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { email, phone, password } = req.body;

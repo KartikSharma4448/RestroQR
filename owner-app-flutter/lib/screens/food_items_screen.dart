@@ -33,6 +33,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
   }
 
   Future<void> _loadItems() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -43,6 +44,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
       final response = await apiService.get(
         '/owner/categories/${widget.categoryId}/items',
       );
+      if (!mounted) return;
       final data = response.data;
 
       if (data['success'] == true) {
@@ -57,11 +59,13 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
         });
       }
     } on DioException catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = _extractError(e);
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = 'Network error. Please check your connection.';
         _isLoading = false;
@@ -87,6 +91,18 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
         );
       }
     }
+  }
+
+  Future<void> _openForm({FoodItemData? item}) async {
+    final saved = await context.push<bool>(
+      item == null
+          ? '/categories/${widget.categoryId}/items/add'
+          : '/categories/${widget.categoryId}/items/edit/${item.id}',
+      extra: item == null
+          ? widget.categoryName
+          : {'categoryName': widget.categoryName, 'item': item},
+    );
+    if (mounted && saved == true) await _loadItems();
   }
 
   Future<void> _deleteItem(FoodItemData item) async {
@@ -125,7 +141,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
           ),
         );
       }
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -155,10 +171,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
         title: Text(widget.categoryName ?? 'Food Items'),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push(
-          '/categories/${widget.categoryId}/items/add',
-          extra: widget.categoryName,
-        ),
+        onPressed: _openForm,
         backgroundColor: AppColors.accent,
         child: const Icon(Icons.add, color: Colors.white),
       ),
@@ -191,10 +204,7 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
         icon: Icons.restaurant_menu,
         title: 'No dishes yet',
         action: 'Add dish',
-        onAction: () => context.push(
-          '/categories/${widget.categoryId}/items/add',
-          extra: widget.categoryName,
-        ),
+        onAction: _openForm,
       );
     }
 
@@ -213,109 +223,135 @@ class _FoodItemsScreenState extends State<FoodItemsScreen> {
 
   Widget _buildItemCard(FoodItemData item) {
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
       child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Veg/Non-Veg badge
-            Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: item.badge == 'veg' ? Colors.green : Colors.red,
-                  width: 2,
-                ),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Center(
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: item.badge == 'veg' ? Colors.green : Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            // Item details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.name,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: item.isAvailable ? null : Colors.grey,
-                      decoration: item.isAvailable
-                          ? null
-                          : TextDecoration.lineThrough,
-                    ),
-                  ),
-                  if (item.description != null &&
-                      item.description!.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      item.description!,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                    ),
-                  ],
-                  const SizedBox(height: 4),
-                  Text(
-                    '₹${item.price.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.accent,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Actions
-            Column(
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Switch(
-                  value: item.isAvailable,
-                  onChanged: (_) => _toggleAvailability(item),
-                  activeTrackColor: AppColors.accent,
+                SizedBox(
+                  width: 68,
+                  height: 68,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: ColoredBox(
+                      color: AppColors.background,
+                      child: item.imageUrl != null
+                          ? Image.network(
+                              item.imageUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, error, stack) => const Icon(
+                                Icons.restaurant_outlined,
+                                color: AppColors.muted,
+                              ),
+                            )
+                          : item.emoji != null
+                          ? Center(
+                              child: Text(
+                                item.emoji!,
+                                style: const TextStyle(fontSize: 30),
+                              ),
+                            )
+                          : const Icon(
+                              Icons.restaurant_outlined,
+                              color: AppColors.muted,
+                            ),
+                    ),
+                  ),
                 ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      tooltip: 'Edit dish',
-                      icon: const Icon(Icons.edit_outlined, size: 20),
-                      onPressed: () => context.push(
-                        '/categories/${widget.categoryId}/items/edit/${item.id}',
-                        extra: {
-                          'categoryName': widget.categoryName,
-                          'item': item,
-                        },
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.name,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: item.isAvailable ? null : Colors.grey,
+                          decoration: item.isAvailable
+                              ? null
+                              : TextDecoration.lineThrough,
+                        ),
                       ),
-                      color: AppColors.accent,
-                      constraints: const BoxConstraints(
-                        minWidth: 44,
-                        minHeight: 44,
+                      if (item.description != null &&
+                          item.description!.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          item.description!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 4),
+                      Text(
+                        '₹${item.price.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.accent,
+                        ),
                       ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            const Divider(),
+            Row(
+              children: [
+                Icon(
+                  Icons.circle,
+                  size: 8,
+                  color: item.badge == 'veg'
+                      ? AppColors.accent
+                      : AppColors.coral,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    item.badge == 'veg' ? 'Vegetarian' : 'Non-veg',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.muted,
                     ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      tooltip: 'Delete dish',
-                      icon: const Icon(Icons.delete_outline, size: 20),
-                      onPressed: () => _deleteItem(item),
-                      color: Colors.red,
-                      constraints: const BoxConstraints(
-                        minWidth: 44,
-                        minHeight: 44,
-                      ),
-                    ),
-                  ],
+                  ),
+                ),
+                Tooltip(
+                  message: item.isAvailable ? 'Available' : 'Unavailable',
+                  child: Switch(
+                    value: item.isAvailable,
+                    onChanged: (_) => _toggleAvailability(item),
+                    activeTrackColor: AppColors.accent,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                IconButton(
+                  tooltip: 'Edit dish',
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                  onPressed: () => _openForm(item: item),
+                  color: AppColors.accent,
+                  constraints: const BoxConstraints(
+                    minWidth: 44,
+                    minHeight: 44,
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Delete dish',
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                  onPressed: () => _deleteItem(item),
+                  color: AppColors.coral,
+                  constraints: const BoxConstraints(
+                    minWidth: 44,
+                    minHeight: 44,
+                  ),
                 ),
               ],
             ),

@@ -14,6 +14,7 @@ const contentSecurityPolicy = [
   "frame-ancestors 'none'",
 ].join('; ');
 const nextConfig = {
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   poweredByHeader: false,
   async headers() {
     return [{ source: '/:path*', headers: [

@@ -1,4 +1,5 @@
 import pool from '../config/database';
+import { menuOptionsEnabled, type MenuOptions } from './menuOptionsService';
 import {
   ValidationError,
   ValidationDetail,
@@ -13,6 +14,8 @@ export interface FoodItemRecord {
   description: string | null;
   price: string;
   imageUrl: string | null;
+  emoji?: string | null;
+  options?: MenuOptions;
   badge: 'veg' | 'non_veg';
   isAvailable: boolean;
   createdAt: string;
@@ -31,6 +34,8 @@ function mapRow(row: Record<string, unknown>): FoodItemRecord {
     description: row.description as string | null,
     price: row.price as string,
     imageUrl: row.image_url as string | null,
+    ...(process.env.MENU_MEDIA_ENABLED === 'true' ? { emoji: row.emoji as string | null ?? null } : {}),
+    ...(menuOptionsEnabled() ? { options: (row.menu_options || { variants: [], addOns: [] }) as MenuOptions } : {}),
     badge: row.badge as 'veg' | 'non_veg',
     isAvailable: row.is_available as boolean,
     createdAt: (row.created_at as Date).toISOString(),
@@ -169,7 +174,7 @@ export async function createFoodItem(
   const result = await pool.query(
     `INSERT INTO food_items (category_id, restaurant_id, name, description, price, image_url, badge, is_available)
      VALUES ($1, $2, $3, $4, $5, $6, $7, true)
-     RETURNING id, category_id, restaurant_id, name, description, price, image_url, badge, is_available, created_at, updated_at`,
+     RETURNING id, category_id, restaurant_id, name, description, price, image_url, badge, is_available, created_at, updated_at${process.env.MENU_MEDIA_ENABLED === 'true' ? ', emoji' : ''}${menuOptionsEnabled() ? ', menu_options' : ''}`,
     [
       categoryId,
       restaurantId,
@@ -195,7 +200,7 @@ export async function listFoodItems(
   await verifyCategoryOwnership(categoryId, restaurantId);
 
   const result = await pool.query(
-    `SELECT id, category_id, restaurant_id, name, description, price, image_url, badge, is_available, created_at, updated_at
+    `SELECT id, category_id, restaurant_id, name, description, price, image_url, badge, is_available, created_at, updated_at${process.env.MENU_MEDIA_ENABLED === 'true' ? ', emoji' : ''}${menuOptionsEnabled() ? ', menu_options' : ''}
      FROM food_items
      WHERE category_id = $1 AND restaurant_id = $2
      ORDER BY created_at ASC`,
@@ -245,7 +250,7 @@ export async function updateFoodItem(
   if (setClauses.length === 0) {
     // Nothing to update, just return current item
     const current = await pool.query(
-      `SELECT id, category_id, restaurant_id, name, description, price, image_url, badge, is_available, created_at, updated_at
+      `SELECT id, category_id, restaurant_id, name, description, price, image_url, badge, is_available, created_at, updated_at${process.env.MENU_MEDIA_ENABLED === 'true' ? ', emoji' : ''}${menuOptionsEnabled() ? ', menu_options' : ''}
        FROM food_items WHERE id = $1`,
       [itemId]
     );
@@ -258,7 +263,7 @@ export async function updateFoodItem(
   const result = await pool.query(
     `UPDATE food_items SET ${setClauses.join(', ')}
      WHERE id = $${paramIndex}
-     RETURNING id, category_id, restaurant_id, name, description, price, image_url, badge, is_available, created_at, updated_at`,
+     RETURNING id, category_id, restaurant_id, name, description, price, image_url, badge, is_available, created_at, updated_at${process.env.MENU_MEDIA_ENABLED === 'true' ? ', emoji' : ''}${menuOptionsEnabled() ? ', menu_options' : ''}`,
     values
   );
 

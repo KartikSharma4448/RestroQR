@@ -1,4 +1,9 @@
 node_modules
+.secrets
+**/.secrets/**
+*firebase-adminsdk*.json
+*service-account*.json
+*serviceAccount*.json
 dist
 .env
 .env.docker

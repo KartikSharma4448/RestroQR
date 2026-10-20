@@ -1,96 +1,75 @@
 'use client';
-
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface Category {
   id: string;
   name: string;
+  count?: number;
 }
-
-interface CategoryNavProps {
+interface Props {
   categories: Category[];
+  selectedId: string | null;
+  onChange: (id: string | null) => void;
+  total: number;
 }
-
-export default function CategoryNav({ categories }: CategoryNavProps) {
-  const [activeId, setActiveId] = useState<string>('');
+export default function CategoryNav({
+  categories,
+  selectedId,
+  onChange,
+  total,
+}: Props) {
   const navRef = useRef<HTMLDivElement>(null);
-
-  // IntersectionObserver to set active category on scroll
+  const tabs = [{ id: null, name: 'All', count: total }, ...categories];
   useEffect(() => {
-    if (categories.length === 0) return;
-    setActiveId(categories[0].id);
-
-    const observerOptions = {
-      root: null,
-      rootMargin: '-110px 0px -60% 0px', // Matches the header/nav offset
-      threshold: 0,
-    };
-
-    const handleIntersection = (entries: IntersectionObserverEntry[]) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          setActiveId(entry.target.id);
-        }
-      });
-    };
-
-    const observer = new IntersectionObserver(handleIntersection, observerOptions);
-
-    categories.forEach((cat) => {
-      const el = document.getElementById(cat.id);
-      if (el) observer.observe(el);
-    });
-
-    return () => observer.disconnect();
-  }, [categories]);
-
-  // Scroll active tab into view in the horizontal nav bar
-  useEffect(() => {
-    if (!activeId) return;
-    const activeTab = document.getElementById(`tab-${activeId}`);
-    const container = navRef.current;
-    if (activeTab && container) {
-      const containerWidth = container.offsetWidth;
-      const tabOffsetLeft = activeTab.offsetLeft;
-      const tabWidth = activeTab.offsetWidth;
+    const container = navRef.current,
+      tab = container?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (container && tab)
       container.scrollTo({
-        left: tabOffsetLeft - containerWidth / 2 + tabWidth / 2,
-        behavior: 'smooth',
+        left: tab.offsetLeft - container.clientWidth / 2 + tab.clientWidth / 2,
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+          ? 'auto'
+          : 'smooth',
       });
-    }
-  }, [activeId]);
-
-  const scrollToCategory = (id: string) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      setActiveId(id);
-    }
-  };
-
-  if (categories.length === 0) return null;
-
+  }, [selectedId]);
   return (
     <div
       ref={navRef}
       className="category-tabs"
-      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      role="tablist"
+      aria-label="Menu categories"
     >
-      {categories.map((cat) => {
-        const isActive = cat.id === activeId;
-        return (
-          <button
-            key={cat.id}
-            id={`tab-${cat.id}`}
-            type="button"
-            onClick={() => scrollToCategory(cat.id)}
-            aria-current={isActive ? 'true' : undefined}
-            className={isActive ? 'active' : ''}
-          >
-            {cat.name}
-          </button>
-        );
-      })}
+      {tabs.map((tab, index) => (
+        <button
+          key={tab.id || 'all'}
+          id={tab.id ? `tab-${tab.id}` : 'tab-all'}
+          type="button"
+          role="tab"
+          aria-controls="category-panel"
+          aria-selected={selectedId === tab.id}
+          tabIndex={selectedId === tab.id ? 0 : -1}
+          className={selectedId === tab.id ? 'active' : ''}
+          onClick={() => onChange(tab.id)}
+          onKeyDown={(event) => {
+            let next = index;
+            if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+            else if (event.key === 'ArrowLeft')
+              next = (index - 1 + tabs.length) % tabs.length;
+            else if (event.key === 'Home') next = 0;
+            else if (event.key === 'End') next = tabs.length - 1;
+            else return;
+            event.preventDefault();
+            onChange(tabs[next].id);
+            navRef.current
+              ?.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+              [next]?.focus({ preventScroll: true });
+          }}
+        >
+          <span>{tab.name}</span>
+          <span className="category-tab-count" aria-hidden="true">
+            {tab.count}
+          </span>
+        </button>
+      ))}
     </div>
   );
 }

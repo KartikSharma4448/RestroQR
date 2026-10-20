@@ -93,6 +93,7 @@ router.get(
 /**
  * GET /api/owner/earnings/history?page=1&pageSize=20&status=payment_received
  * Returns paginated order history with optional status filter.
+ * startDate (inclusive) and endDate (exclusive) are optional UTC ISO timestamps.
  */
 router.get(
   '/earnings/history',
@@ -105,8 +106,10 @@ router.get(
         ? parseInt(req.query.pageSize as string, 10)
         : undefined;
       const status = req.query.status as string | undefined;
+      const startDate = req.query.startDate as string | undefined;
+      const endDate = req.query.endDate as string | undefined;
 
-      const result = await getOrderHistory(restaurantId, { page, pageSize, status });
+      const result = await getOrderHistory(restaurantId, { page, pageSize, status, startDate, endDate });
 
       res.status(200).json({
         success: true,
@@ -121,6 +124,7 @@ router.get(
 /**
  * GET /api/owner/analytics/items?period=monthly&month=2025-01
  * Returns per-item analytics (quantity sold and revenue).
+ * Optional startDate/endDate UTC timestamps define the selected local calendar range.
  */
 router.get(
   '/analytics/items',
@@ -131,7 +135,10 @@ router.get(
       const period = validatePeriod(req.query.period as string | undefined, 'monthly');
       const month = validateMonth(req.query.month as string | undefined);
 
-      const result = await getItemAnalytics(restaurantId, period, month);
+      const result = await getItemAnalytics(restaurantId, period, month, {
+        startDate: req.query.startDate as string | undefined,
+        endDate: req.query.endDate as string | undefined,
+      });
 
       res.status(200).json({
         success: true,

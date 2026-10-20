@@ -26,6 +26,11 @@ class _OrdersScreenState extends State<OrdersScreen>
   Timer? _pollTimer;
   bool _isLoading = true;
   String? _error;
+  int _requestId = 0;
+  final _pages = <String, int>{};
+  final _totals = <String, int>{};
+  final _paymentLoading = <String>{};
+  static const _pageSize = 20;
 
   // Orders grouped by status
   List<OrderData> _pendingOrders = [];
@@ -74,38 +79,75 @@ class _OrdersScreenState extends State<OrdersScreen>
   }
 
   Future<void> _loadOrders() async {
+    if (!mounted) return;
+    final requestId = ++_requestId;
     try {
       // Fetch all statuses in parallel
       final results = await Future.wait([
-        _ownerApiService.getOrders(status: 'pending'),
-        _ownerApiService.getOrders(status: 'accepted'),
-        _ownerApiService.getOrders(status: 'completed'),
-        _ownerApiService.getOrders(status: 'payment_received'),
+        _loadStatus('pending'),
+        _loadStatus('accepted'),
+        _loadStatus('completed'),
+        _loadStatus('payment_received'),
       ]);
 
-      if (!mounted) return;
+      if (!mounted || requestId != _requestId) return;
 
       setState(() {
         _pendingOrders = _sortNewestFirst(results[0].orders);
         _acceptedOrders = _sortNewestFirst(results[1].orders);
         _completedOrders = _sortNewestFirst(results[2].orders);
         _paidOrders = _sortNewestFirst(results[3].orders);
+        for (var i = 0; i < results.length; i++) {
+          final status = [
+            'pending',
+            'accepted',
+            'completed',
+            'payment_received',
+          ][i];
+          _totals[status] = results[i].totalCount;
+          _pages[status] = results[i].page;
+        }
         _isLoading = false;
         _error = null;
       });
     } on DioException catch (e) {
-      if (!mounted) return;
+      if (!mounted || requestId != _requestId) return;
       setState(() {
         _error = _extractError(e);
         _isLoading = false;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || requestId != _requestId) return;
       setState(() {
         _error = 'Failed to load orders. Please try again.';
         _isLoading = false;
       });
     }
+  }
+
+  Future<OrderListResponse> _loadStatus(String status) async {
+    var result = await _ownerApiService.getOrders(
+      status: status,
+      page: _pages[status] ?? 1,
+      pageSize: _pageSize,
+    );
+    final lastPage = (result.totalCount / _pageSize).ceil().clamp(1, 1000000);
+    if (result.page > lastPage) {
+      result = await _ownerApiService.getOrders(
+        status: status,
+        page: lastPage,
+        pageSize: _pageSize,
+      );
+    }
+    return result;
+  }
+
+  void _changePage(String status, int page) {
+    setState(() {
+      _pages[status] = page;
+      _isLoading = true;
+    });
+    _loadOrders();
   }
 
   List<OrderData> _sortNewestFirst(List<OrderData> orders) {
@@ -198,6 +240,13 @@ class _OrdersScreenState extends State<OrdersScreen>
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: const Text('Orders'),
+        actions: [
+          IconButton(
+            tooltip: 'Refresh orders',
+            onPressed: _isLoading ? null : _loadOrders,
+            icon: const Icon(Icons.refresh, size: 22),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -206,10 +255,10 @@ class _OrdersScreenState extends State<OrdersScreen>
           unselectedLabelColor: AppColors.muted,
           indicatorColor: AppColors.accent,
           tabs: [
-            Tab(text: 'Pending (${_pendingOrders.length})'),
-            Tab(text: 'Accepted (${_acceptedOrders.length})'),
-            Tab(text: 'Completed (${_completedOrders.length})'),
-            Tab(text: 'Paid (${_paidOrders.length})'),
+            Tab(text: 'Pending (${_totals['pending'] ?? 0})'),
+            Tab(text: 'Accepted (${_totals['accepted'] ?? 0})'),
+            Tab(text: 'Completed (${_totals['completed'] ?? 0})'),
+            Tab(text: 'Paid (${_totals['payment_received'] ?? 0})'),
           ],
         ),
       ),
@@ -270,15 +319,125 @@ class _OrdersScreenState extends State<OrdersScreen>
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _loadOrders,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(12),
-        itemCount: orders.length,
-        itemBuilder: (context, index) => _buildOrderCard(orders[index]),
-      ),
+    final page = _pages[status] ?? 1;
+    final pageCount = ((_totals[status] ?? 0) / _pageSize).ceil().clamp(
+      1,
+      1000000,
+    );
+    return Column(
+      children: [
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _loadOrders,
+            child: ListView.builder(
+              key: ValueKey('$status-$page'),
+              padding: const EdgeInsets.all(12),
+              itemCount: orders.length,
+              itemBuilder: (context, index) => _buildOrderCard(orders[index]),
+            ),
+          ),
+        ),
+        if (pageCount > 1)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  tooltip: 'Previous page',
+                  icon: const Icon(Icons.chevron_left),
+                  onPressed: page > 1
+                      ? () => _changePage(status, page - 1)
+                      : null,
+                ),
+                Text('Page $page of $pageCount'),
+                IconButton(
+                  tooltip: 'Next page',
+                  icon: const Icon(Icons.chevron_right),
+                  onPressed: page < pageCount
+                      ? () => _changePage(status, page + 1)
+                      : null,
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
+
+  Future<void> _reviewPayment(OrderData order) async {
+    setState(() => _paymentLoading.add(order.id));
+    try {
+      final payment = await _ownerApiService.getOrderPayment(order.id);
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Payment - ${order.orderRef}'),
+          content: SizedBox(
+            width: 480,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Choice: ${payment['choice']}'),
+                  if (payment['transactionId'] != null)
+                    SelectableText(
+                      'Transaction ID: ${payment['transactionId']}',
+                    ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Confirm payment in your bank/UPI app or collect cash before marking paid. A screenshot is not verification.',
+                  ),
+                  if (payment['proofUrl'] is String) ...[
+                    const SizedBox(height: 12),
+                    Image.network(
+                      payment['proofUrl'] as String,
+                      fit: BoxFit.contain,
+                      loadingBuilder: (context, child, progress) =>
+                          progress == null
+                          ? child
+                          : const SizedBox(
+                              height: 120,
+                              child: Center(child: CircularProgressIndicator()),
+                            ),
+                      errorBuilder: (context, error, stack) => const Text(
+                        'Screenshot unavailable. Close and reopen to refresh access.',
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not load payment. Please try again.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _paymentLoading.remove(order.id));
+    }
+  }
+
+  Color _ticketColor(String status) => switch (status) {
+    'pending' => AppColors.amber,
+    'accepted' => AppColors.blue,
+    'completed' => AppColors.accent,
+    _ => AppColors.muted,
+  };
 
   Widget _buildOrderCard(OrderData order) {
     return Card(
@@ -289,6 +448,26 @@ class _OrdersScreenState extends State<OrdersScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              children: [
+                Icon(Icons.circle, size: 7, color: _ticketColor(order.status)),
+                const SizedBox(width: 6),
+                Text(
+                  _statusLabel(order.status),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: _ticketColor(order.status),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '${order.items.fold<int>(0, (sum, item) => sum + item.quantity)} items',
+                  style: const TextStyle(fontSize: 11, color: AppColors.muted),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             // Header: table name + order ref
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -308,7 +487,7 @@ class _OrdersScreenState extends State<OrdersScreen>
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.accent.withValues(alpha: 0.1),
+                    color: AppColors.background,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -316,7 +495,7 @@ class _OrdersScreenState extends State<OrdersScreen>
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.accent,
+                      color: AppColors.muted,
                     ),
                   ),
                 ),
@@ -324,33 +503,29 @@ class _OrdersScreenState extends State<OrdersScreen>
             ),
             if (order.customerName != null || order.customerPhone != null) ...[
               const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[200]!),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.person_pin_rounded,
-                      size: 16,
-                      color: Colors.grey[600],
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        '${order.customerName ?? "Guest"} • ${order.customerPhone ?? ""}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey[800],
-                        ),
+              Row(
+                children: [
+                  Icon(
+                    Icons.person_pin_rounded,
+                    size: 16,
+                    color: Colors.grey[600],
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      [
+                        order.customerName ?? 'Guest',
+                        if (order.customerPhone?.isNotEmpty == true)
+                          order.customerPhone!,
+                      ].join(' · '),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[800],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ],
             const SizedBox(height: 12),
@@ -369,7 +544,19 @@ class _OrdersScreenState extends State<OrdersScreen>
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Expanded(child: Text(item.itemName)),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(item.itemName),
+                          if (item.optionSummary?.isNotEmpty == true)
+                            Text(
+                              item.optionSummary!,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -399,6 +586,27 @@ class _OrdersScreenState extends State<OrdersScreen>
             const SizedBox(height: 12),
 
             // Action buttons based on current status
+            if (order.paymentSummary != null) ...[
+              Text(
+                order.paymentSummary!['choice'] == 'upi_submitted'
+                    ? 'UPI proof submitted - verify in your bank app'
+                    : order.paymentSummary!['choice'] == 'cash'
+                    ? 'Cash selected - collect at counter'
+                    : 'Payment not submitted',
+              ),
+              TextButton.icon(
+                onPressed: _paymentLoading.contains(order.id)
+                    ? null
+                    : () => _reviewPayment(order),
+                icon: const Icon(Icons.receipt_long_outlined, size: 18),
+                label: Text(
+                  _paymentLoading.contains(order.id)
+                      ? 'Loading...'
+                      : 'Review payment',
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
             _buildActionButtons(order),
           ],
         ),
@@ -443,7 +651,7 @@ class _OrdersScreenState extends State<OrdersScreen>
               onPressed: () => _updateStatus(order, 'completed'),
               icon: const Icon(Icons.done_all, size: 18),
               label: const Text('Complete'),
-              style: FilledButton.styleFrom(backgroundColor: Colors.blue),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.blue),
             ),
           ),
         );

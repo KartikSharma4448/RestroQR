@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../models/auth_models.dart';
 import '../services/auth_service.dart';
+import '../services/google_identity_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -122,6 +123,26 @@ class _LoginScreenState extends State<LoginScreen> {
                       : const Text('Sign in'),
                 ),
                 const SizedBox(height: 16),
+                if (GoogleIdentityService.enabled) ...[
+                  OutlinedButton(
+                    onPressed: authService.isLoading
+                        ? null
+                        : () async {
+                            final success = await authService
+                                .signInWithGoogle();
+                            if (!context.mounted) return;
+                            if (success) {
+                              context.go('/dashboard');
+                            } else if (authService.error != null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(authService.error!)),
+                              );
+                            }
+                          },
+                    child: const Text('Sign in with Google'),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 TextButton(
                   onPressed: authService.isLoading
                       ? null

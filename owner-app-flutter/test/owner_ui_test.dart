@@ -77,6 +77,9 @@ class SampleApi extends ApiService {
       };
     } else if (path == '/owner/orders') {
       data = {
+        'total': queryParameters?['status'] == 'pending' ? 2 : 0,
+        'page': 1,
+        'pageSize': 20,
         'orders': queryParameters?['status'] == 'pending'
             ? [
                 {
@@ -336,6 +339,33 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Enter your email or phone'), findsOneWidget);
     expect(find.text('Enter your password'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('category menu retains edit and confirmed-delete controls', (
+    tester,
+  ) async {
+    await showScreen(tester, const CategoriesScreen(), const Size(390, 844), 1);
+    await tester.tap(find.byTooltip('Category actions').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit category'));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit Category'), findsOneWidget);
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      'Small plates',
+    );
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Category actions').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete category'));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete Category'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.text('Small plates'), findsOneWidget);
+    expect(find.byType(AlertDialog), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 

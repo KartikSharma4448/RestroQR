@@ -2,12 +2,19 @@
 
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 
+export const MAX_ITEM_QUANTITY = 100;
+export const MAX_CART_ITEMS = 50;
+
 interface CartItem {
   id: string;
   name: string;
   price: number;
   quantity: number;
   badge: 'veg' | 'non_veg';
+  foodItemId?: string;
+  variantId?: string;
+  addOnIds?: string[];
+  optionSummary?: string;
 }
 
 interface CartContextType {
@@ -29,10 +36,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prev) => {
       const existing = prev.find((i) => i.id === item.id);
       if (existing) {
+        if (existing.quantity >= MAX_ITEM_QUANTITY) return prev;
         return prev.map((i) =>
           i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
         );
       }
+      if (prev.length >= MAX_CART_ITEMS) return prev;
       return [...prev, { ...item, quantity: 1 }];
     });
   }, []);
@@ -62,7 +71,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
-  const totalPrice = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  const totalPrice = items.reduce((sum, i) => sum + Math.round(i.price * 100) * i.quantity, 0) / 100;
 
   return (
     <CartContext.Provider value={{ items, totalItems, totalPrice, addItem, removeItem, clearCart, getQuantity }}>

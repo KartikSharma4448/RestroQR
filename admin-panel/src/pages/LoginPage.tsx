@@ -30,7 +30,7 @@ export default function LoginPage() {
         const axiosErr = err as { response?: { data?: { error?: { message?: string } } } };
         setError(axiosErr.response?.data?.error?.message || 'Login failed. Please check your credentials.');
       } else {
-        setError('An unexpected error occurred. Please try again.');
+        setError(err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.');
       }
     } finally {
       setLoading(false);

@@ -26,6 +26,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   }
 
   Future<void> _loadCategories() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -34,6 +35,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     try {
       final apiService = context.read<ApiService>();
       final response = await apiService.get('/owner/categories');
+      if (!mounted) return;
       final data = response.data;
 
       if (data['success'] == true) {
@@ -48,11 +50,13 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         });
       }
     } on DioException catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = _extractError(e);
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = 'Network error. Please check your connection.';
         _isLoading = false;
@@ -78,7 +82,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
           ),
         );
       }
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -111,7 +115,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
           ),
         );
       }
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -153,7 +157,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
           ),
         );
       }
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -239,6 +243,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         title: const Text('Menu categories'),
       ),
       floatingActionButton: FloatingActionButton(
+        tooltip: 'Add category',
         onPressed: _addCategory,
         backgroundColor: AppColors.accent,
         child: const Icon(Icons.add, color: Colors.white),
@@ -281,16 +286,43 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     }
 
     return ReorderableListView.builder(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 90),
+      header: Padding(
+        padding: const EdgeInsets.only(bottom: 20),
+        child: Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Menu library',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+              ),
+            ),
+            Text(
+              '${_categories.length} categories',
+              style: const TextStyle(fontSize: 12, color: AppColors.muted),
+            ),
+          ],
+        ),
+      ),
       itemCount: _categories.length,
       onReorder: _reorderCategories,
       itemBuilder: (context, index) {
         final category = _categories[index];
         return Card(
           key: ValueKey(category.id),
-          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+          margin: const EdgeInsets.only(bottom: 10),
           child: ListTile(
-            leading: Icon(Icons.drag_handle, color: Colors.grey[400]),
+            leading: SizedBox(
+              width: 26,
+              child: Text(
+                '${index + 1}'.padLeft(2, '0'),
+                style: const TextStyle(
+                  color: AppColors.coral,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
             title: Text(
               category.name,
               style: const TextStyle(fontWeight: FontWeight.w500),
@@ -298,17 +330,37 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(
-                  tooltip: 'Edit category',
-                  icon: const Icon(Icons.edit_outlined),
-                  onPressed: () => _editCategory(category),
-                  color: AppColors.accent,
+                ReorderableDragStartListener(
+                  index: index,
+                  child: const Tooltip(
+                    message: 'Reorder category',
+                    child: Padding(
+                      padding: EdgeInsets.all(10),
+                      child: Icon(
+                        Icons.drag_indicator,
+                        size: 20,
+                        color: AppColors.muted,
+                      ),
+                    ),
+                  ),
                 ),
-                IconButton(
-                  tooltip: 'Delete category',
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: () => _deleteCategory(category),
-                  color: Colors.red,
+                PopupMenuButton<String>(
+                  tooltip: 'Category actions',
+                  icon: const Icon(Icons.more_vert, size: 20),
+                  onSelected: (action) {
+                    if (action == 'edit') {
+                      _editCategory(category);
+                    } else {
+                      _deleteCategory(category);
+                    }
+                  },
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(value: 'edit', child: Text('Edit category')),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Text('Delete category'),
+                    ),
+                  ],
                 ),
               ],
             ),

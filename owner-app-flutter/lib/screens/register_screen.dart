@@ -56,7 +56,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final success = await authService.register(request);
 
     if (success && mounted) {
-      context.go('/dashboard');
+      context.go(authService.hasPendingSignup ? '/verify-email' : '/dashboard');
     } else if (mounted && authService.error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -109,11 +109,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   prefixIcon: Icon(Icons.email_outlined),
                 ),
                 validator: (value) =>
-                    value != null &&
-                        value.trim().isNotEmpty &&
-                        !RegExp(
-                          r'^[^\s@]+@[^\s@]+\.[^\s@]+$',
-                        ).hasMatch(value.trim())
+                    AuthService.emailSignupEnabled &&
+                        (value == null || value.trim().isEmpty)
+                    ? 'Email is required'
+                    : value != null &&
+                          value.trim().isNotEmpty &&
+                          !RegExp(
+                            r'^[^\s@]+@[^\s@]+\.[^\s@]+$',
+                          ).hasMatch(value.trim())
                     ? 'Enter a valid email'
                     : null,
               ),

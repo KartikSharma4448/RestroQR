@@ -12,6 +12,11 @@ class OwnerApiService {
 
   OwnerApiService(this._apiService);
 
+  Future<Map<String, dynamic>> getOrderPayment(String orderId) async {
+    final response = await _apiService.get('/owner/orders/$orderId/payment');
+    return Map<String, dynamic>.from(response.data['data']);
+  }
+
   // ---------------------------------------------------------------------------
   // Table Management
   // ---------------------------------------------------------------------------
@@ -23,7 +28,9 @@ class OwnerApiService {
       data: {'displayName': displayName},
     );
     final data = response.data['data'];
-    final tableJson = data is Map && data.containsKey('table') ? data['table'] : data;
+    final tableJson = data is Map && data.containsKey('table')
+        ? data['table']
+        : data;
     return TableData.fromJson(tableJson as Map<String, dynamic>);
   }
 
@@ -31,7 +38,9 @@ class OwnerApiService {
   Future<List<TableData>> listTables() async {
     final response = await _apiService.get('/owner/tables');
     final data = response.data['data'];
-    final List<dynamic> items = data is Map ? (data['tables'] ?? []) : (data ?? []);
+    final List<dynamic> items = data is Map
+        ? (data['tables'] ?? [])
+        : (data ?? []);
     return items
         .map((item) => TableData.fromJson(item as Map<String, dynamic>))
         .toList();
@@ -47,7 +56,9 @@ class OwnerApiService {
       data: {'displayName': displayName},
     );
     final data = response.data['data'];
-    final tableJson = data is Map && data.containsKey('table') ? data['table'] : data;
+    final tableJson = data is Map && data.containsKey('table')
+        ? data['table']
+        : data;
     return TableData.fromJson(tableJson as Map<String, dynamic>);
   }
 
@@ -72,10 +83,7 @@ class OwnerApiService {
     int page = 1,
     int pageSize = 20,
   }) async {
-    final queryParams = <String, dynamic>{
-      'page': page,
-      'pageSize': pageSize,
-    };
+    final queryParams = <String, dynamic>{'page': page, 'pageSize': pageSize};
     if (status != null) {
       queryParams['status'] = status;
     }
@@ -96,17 +104,19 @@ class OwnerApiService {
       data: {'status': status},
     );
     final data = response.data['data'];
-    final orderJson = data is Map && data.containsKey('order') ? data['order'] : data;
+    final orderJson = data is Map && data.containsKey('order')
+        ? data['order']
+        : data;
     return OrderData.fromJson(orderJson as Map<String, dynamic>);
   }
 
   /// Cancel an order.
   Future<OrderData> cancelOrder({required String orderId}) async {
-    final response = await _apiService.post(
-      '/owner/orders/$orderId/cancel',
-    );
+    final response = await _apiService.post('/owner/orders/$orderId/cancel');
     final data = response.data['data'];
-    final orderJson = data is Map && data.containsKey('order') ? data['order'] : data;
+    final orderJson = data is Map && data.containsKey('order')
+        ? data['order']
+        : data;
     return OrderData.fromJson(orderJson as Map<String, dynamic>);
   }
 
@@ -121,7 +131,8 @@ class OwnerApiService {
       queryParameters: {'month': month},
     );
     return EarningsSummary.fromJson(
-        response.data['data'] as Map<String, dynamic>);
+      response.data['data'] as Map<String, dynamic>,
+    );
   }
 
   /// Get earnings breakdown by period (daily, weekly, monthly).
@@ -134,7 +145,9 @@ class OwnerApiService {
       queryParameters: {'period': period, 'month': month},
     );
     final data = response.data['data'];
-    final List<dynamic> items = data is Map ? (data['breakdown'] ?? []) : (data ?? []);
+    final List<dynamic> items = data is Map
+        ? (data['breakdown'] ?? [])
+        : (data ?? []);
     return items
         .map((item) => EarningsBreakdown.fromJson(item as Map<String, dynamic>))
         .toList();
@@ -145,13 +158,18 @@ class OwnerApiService {
     int page = 1,
     int pageSize = 20,
     String? status,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
-    final queryParams = <String, dynamic>{
-      'page': page,
-      'pageSize': pageSize,
-    };
+    final queryParams = <String, dynamic>{'page': page, 'pageSize': pageSize};
     if (status != null) {
       queryParams['status'] = status;
+    }
+    if (startDate != null) {
+      queryParams['startDate'] = startDate.toUtc().toIso8601String();
+    }
+    if (endDate != null) {
+      queryParams['endDate'] = endDate.toUtc().toIso8601String();
     }
     final response = await _apiService.get(
       '/owner/earnings/history',
@@ -164,13 +182,22 @@ class OwnerApiService {
   Future<List<ItemAnalytics>> getItemAnalytics({
     required String period,
     required String month,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     final response = await _apiService.get(
       '/owner/analytics/items',
-      queryParameters: {'period': period, 'month': month},
+      queryParameters: {
+        'period': period,
+        'month': month,
+        if (startDate != null) 'startDate': startDate.toUtc().toIso8601String(),
+        if (endDate != null) 'endDate': endDate.toUtc().toIso8601String(),
+      },
     );
     final data = response.data['data'];
-    final List<dynamic> items = data is Map ? (data['items'] ?? []) : (data ?? []);
+    final List<dynamic> items = data is Map
+        ? (data['items'] ?? [])
+        : (data ?? []);
     return items
         .map((item) => ItemAnalytics.fromJson(item as Map<String, dynamic>))
         .toList();

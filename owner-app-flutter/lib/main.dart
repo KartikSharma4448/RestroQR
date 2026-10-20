@@ -1,15 +1,19 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'models/restaurant_models.dart';
 import 'ui/app_theme.dart';
+import 'ui/waiter_alarm_host.dart';
 import 'services/api_service.dart';
 import 'services/auth_service.dart';
 import 'services/notification_handler.dart';
 import 'services/owner_api_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
+import 'screens/verify_email_screen.dart';
+import 'screens/connect_google_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/profile_setup_screen.dart';
 import 'screens/categories_screen.dart';
@@ -22,11 +26,13 @@ import 'screens/earnings_screen.dart';
 import 'screens/order_history_screen.dart';
 import 'screens/item_analytics_screen.dart';
 import 'screens/qr_mode_settings_screen.dart';
+import 'screens/engagement_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     await Firebase.initializeApp();
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   } catch (e) {
     // Firebase not configured — app will work without push notifications
     debugPrint('Firebase initialization failed: $e');
@@ -34,21 +40,59 @@ void main() async {
   runApp(const RestroQRApp());
 }
 
-class RestroQRApp extends StatelessWidget {
-  const RestroQRApp({super.key});
+class RestroQRApp extends StatefulWidget {
+  final ApiService? apiService;
+  final NotificationHandler? notificationHandler;
+  const RestroQRApp({super.key, this.apiService, this.notificationHandler});
+
+  @override
+  State<RestroQRApp> createState() => _RestroQRAppState();
+}
+
+class _RestroQRAppState extends State<RestroQRApp> {
+  late final ApiService apiService;
+  late final AuthService authService;
+  late final OwnerApiService ownerApiService;
+  late final NotificationHandler notificationHandler;
+  late final GoRouter router;
+  final _messengerKey = GlobalKey<ScaffoldMessengerState>();
+
+  @override
+  void initState() {
+    super.initState();
+    apiService = widget.apiService ?? ApiService();
+    authService = AuthService(apiService);
+    ownerApiService = OwnerApiService(apiService);
+    notificationHandler =
+        widget.notificationHandler ??
+        NotificationHandler(ownerApiService: ownerApiService);
+    authService.notificationHandler = notificationHandler;
+    router = _createRouter(authService, notificationHandler);
+    notificationHandler.onForegroundNotification = (table, total) {
+      if (!mounted || !authService.isAuthenticated) return;
+      _messengerKey.currentState?.showSnackBar(
+        SnackBar(
+          content: Text('New order from $table - $total'),
+          action: SnackBarAction(
+            label: 'View',
+            onPressed: () => router.go('/orders'),
+          ),
+        ),
+      );
+    };
+  }
+
+  @override
+  void dispose() {
+    notificationHandler.onForegroundNotification = null;
+    notificationHandler.onNotificationTap = null;
+    authService.dispose();
+    router.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final apiService = ApiService();
-    final authService = AuthService(apiService);
-    final ownerApiService = OwnerApiService(apiService);
-    final notificationHandler = NotificationHandler(
-      ownerApiService: ownerApiService,
-    );
-
-    // Wire up notification handler for logout unregistration
-    authService.notificationHandler = notificationHandler;
-
     return MultiProvider(
       providers: [
         Provider<ApiService>.value(value: apiService),
@@ -56,17 +100,22 @@ class RestroQRApp extends StatelessWidget {
         Provider<OwnerApiService>.value(value: ownerApiService),
         Provider<NotificationHandler>.value(value: notificationHandler),
       ],
-      child: Builder(
-        builder: (context) {
-          final router = _createRouter(
-            context.read<AuthService>(),
-            context.read<NotificationHandler>(),
-          );
-          return MaterialApp.router(
-            title: 'RestroQR Owner',
-            debugShowCheckedModeBanner: false,
-            theme: ownerTheme(),
-            routerConfig: router,
+      child: MaterialApp.router(
+        scaffoldMessengerKey: _messengerKey,
+        title: 'RestroQR Owner',
+        debugShowCheckedModeBanner: false,
+        theme: ownerTheme(),
+        routerConfig: router,
+        builder: (context, child) {
+          final auth = context.watch<AuthService>();
+          return WaiterAlarmHost(
+            api: apiService,
+            notifications: notificationHandler,
+            enabled:
+                const bool.fromEnvironment('WAITER_CALLING_ENABLED') &&
+                auth.isAuthenticated &&
+                !auth.googleConnectionRequired,
+            child: child ?? const SizedBox(),
           );
         },
       ),
@@ -79,24 +128,44 @@ class RestroQRApp extends StatelessWidget {
   ) {
     final router = GoRouter(
       initialLocation: '/login',
+      refreshListenable: authService,
       redirect: (context, state) async {
         await authService.checkAuthStatus();
         final isAuthenticated = authService.isAuthenticated;
         final isAuthRoute =
             state.matchedLocation == '/login' ||
-            state.matchedLocation == '/register';
+            state.matchedLocation == '/register' ||
+            (state.matchedLocation == '/verify-email' &&
+                authService.hasPendingSignup);
 
         if (!isAuthenticated && !isAuthRoute) {
           return '/login';
         }
+        if (isAuthenticated &&
+            authService.googleConnectionRequired &&
+            state.matchedLocation != '/connect-google') {
+          return '/connect-google';
+        }
+        if (isAuthenticated &&
+            !authService.googleConnectionRequired &&
+            state.matchedLocation == '/connect-google') {
+          return '/dashboard';
+        }
         if (isAuthenticated && isAuthRoute) {
-          // Register FCM token on successful auth
-          notificationHandler.initialize();
           return '/dashboard';
         }
         return null;
       },
       routes: [
+        GoRoute(path:'/engagement',builder:(context,state)=>const EngagementScreen()),
+        GoRoute(
+          path: '/verify-email',
+          builder: (context, state) => const VerifyEmailScreen(),
+        ),
+        GoRoute(
+          path: '/connect-google',
+          builder: (context, state) => const ConnectGoogleScreen(),
+        ),
         GoRoute(
           path: '/login',
           builder: (context, state) => const LoginScreen(),

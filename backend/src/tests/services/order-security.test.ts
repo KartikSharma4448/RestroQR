@@ -43,6 +43,43 @@ describe('Public customer-data boundary', () => {
   });
 });
 
+describe('Customer name in order creation', () => {
+  it.each([
+    ['  Sample Guest  ', 'Sample Guest'],
+    ['   ', null],
+    [undefined, null],
+  ])('stores the trimmed optional name %j without exposing it in confirmation', async (name, storedName) => {
+    const now = new Date();
+    query.mockResolvedValueOnce({ rows: [{ id: restaurantId, qr_mode: 'multi', status: 'active', owner_status: 'active' }] })
+      .mockResolvedValueOnce({ rows: [{ id: tableId }] })
+      .mockResolvedValueOnce({ rows: [{ id: itemId, name: 'Sample Tea', price: '10.00', is_available: true, restaurant_id: restaurantId }] })
+      .mockResolvedValue({ rows: [{ display_name: 'Table 1' }] });
+    const transactionQuery = jest.fn(async (sql: string, params?: unknown[]) => {
+      if (sql.includes('SELECT id FROM orders')) return { rows: [] };
+      if (sql.includes('INSERT INTO orders')) {
+        expect(params?.[4]).toBe(storedName);
+        return { rows: [{ id: orderId, restaurant_id: restaurantId, table_id: tableId,
+          order_ref: 'ORD-SAMPLE', status: 'pending', total: '10.00',
+          customer_name: storedName, customer_phone: null, created_at: now, updated_at: now }] };
+      }
+      if (sql.includes('INSERT INTO order_items')) {
+        return { rows: [{ id: 'sample-order-item', order_id: orderId, food_item_id: itemId,
+          item_name: 'Sample Tea', item_price: '10.00', quantity: 1, created_at: now }] };
+      }
+      return { rows: [] };
+    });
+    const release = jest.fn();
+    connect.mockResolvedValue({ query: transactionQuery, release });
+    const response = await request(app).post('/api/public/orders')
+      .send({ tableToken: 'sample-table', items, ...(name === undefined ? {} : { customerName: name }) });
+    expect(response.status).toBe(201);
+    expect(response.body.data.orderRef).toBe('ORD-SAMPLE');
+    expect(response.body.data).not.toHaveProperty('customerName');
+    expect(transactionQuery).toHaveBeenCalledWith('COMMIT');
+    expect(release).toHaveBeenCalled();
+  });
+});
+
 describe('Order validation before database access', () => {
   it.each([null, {}, { itemId, quantity: 0 }, { itemId, quantity: -1 },
     { itemId, quantity: 1.5 }, { itemId, quantity: '2' }, { itemId, quantity: 101 },

@@ -9,6 +9,7 @@
     "migrate": "node-pg-migrate up --migrations-dir migrations --migration-file-language js",
     "start": "npm run migrate && node dist/index.js",
     "test": "jest",
+    "test:postgres": "node scripts/run-auth-acceptance.cjs",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "lint": "eslint src/**/*.ts",

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'owner_widgets.dart';
+import 'app_theme.dart';
 
 class AuthLayout extends StatelessWidget {
   final String title;
@@ -16,8 +17,10 @@ class AuthLayout extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const BrandHeading(),
-              const SizedBox(height: 36),
-              Text(title, style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 32),
+              const Divider(color: AppColors.border),
+              const SizedBox(height: 24),
+              Text(title, style: Theme.of(context).textTheme.headlineSmall),
               const SizedBox(height: 24),
               child,
             ],

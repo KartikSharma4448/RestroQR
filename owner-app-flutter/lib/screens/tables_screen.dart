@@ -35,6 +35,7 @@ class _TablesScreenState extends State<TablesScreen> {
   }
 
   Future<void> _loadTables() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -42,16 +43,19 @@ class _TablesScreenState extends State<TablesScreen> {
 
     try {
       final tables = await _ownerApiService.listTables();
+      if (!mounted) return;
       setState(() {
         _tables = tables;
         _isLoading = false;
       });
     } on DioException catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = _extractError(e);
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = 'Error: ${e.toString()}';
         _isLoading = false;
@@ -61,7 +65,7 @@ class _TablesScreenState extends State<TablesScreen> {
 
   Future<void> _addTable() async {
     final displayName = await _showNameDialog(title: 'Add Table');
-    if (displayName == null || displayName.trim().isEmpty) return;
+    if (!mounted || displayName == null || displayName.trim().isEmpty) return;
 
     setState(() => _isLoading = true);
     try {
@@ -76,7 +80,7 @@ class _TablesScreenState extends State<TablesScreen> {
           ),
         );
       }
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -85,7 +89,8 @@ class _TablesScreenState extends State<TablesScreen> {
       title: 'Edit Table Name',
       initialValue: table.displayName,
     );
-    if (displayName == null ||
+    if (!mounted ||
+        displayName == null ||
         displayName.trim().isEmpty ||
         displayName.trim() == table.displayName) {
       return;
@@ -107,7 +112,7 @@ class _TablesScreenState extends State<TablesScreen> {
           ),
         );
       }
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -134,7 +139,7 @@ class _TablesScreenState extends State<TablesScreen> {
       ),
     );
 
-    if (confirmed != true) return;
+    if (!mounted || confirmed != true) return;
 
     setState(() => _isLoading = true);
     try {
@@ -149,7 +154,7 @@ class _TablesScreenState extends State<TablesScreen> {
           ),
         );
       }
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

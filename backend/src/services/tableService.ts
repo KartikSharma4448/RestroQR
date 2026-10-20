@@ -228,10 +228,19 @@ export async function deleteTable(
     throw new NotFoundError('Table not found');
   }
 
-  await pool.query(
-    'DELETE FROM tables WHERE id = $1 AND restaurant_id = $2',
-    [tableId, restaurantId]
-  );
+  try {
+    await pool.query(
+      'DELETE FROM tables WHERE id = $1 AND restaurant_id = $2',
+      [tableId, restaurantId]
+    );
+  } catch (error) {
+    if ((error as { code?: string })?.code === '23503') {
+      throw new ConflictError(
+        'This table has order history and cannot be deleted. Rename it instead to preserve existing orders.'
+      );
+    }
+    throw error;
+  }
 }
 
 /**

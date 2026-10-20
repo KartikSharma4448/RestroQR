@@ -63,6 +63,8 @@ class FoodItemData {
   final String? description;
   final double price;
   final String? imageUrl;
+  final String? emoji;
+  final Map<String, dynamic>? options;
   final String badge;
   final bool isAvailable;
 
@@ -73,6 +75,8 @@ class FoodItemData {
     this.description,
     required this.price,
     this.imageUrl,
+    this.emoji,
+    this.options,
     required this.badge,
     required this.isAvailable,
   });
@@ -87,6 +91,10 @@ class FoodItemData {
           ? double.tryParse(json['price']) ?? 0.0
           : (json['price'] ?? 0).toDouble(),
       imageUrl: json['imageUrl'] ?? json['image_url'],
+      emoji: json['emoji'],
+      options: json['options'] is Map
+          ? Map<String, dynamic>.from(json['options'])
+          : null,
       badge: json['badge'] ?? 'veg',
       isAvailable: json['isAvailable'] ?? json['is_available'] ?? true,
     );

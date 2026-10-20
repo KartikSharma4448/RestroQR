@@ -1,13 +1,15 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import './cafe-menu.css';
+import { SITE_URL, SITE_NAME, HOME_TITLE, HOME_DESCRIPTION, SOCIAL_IMAGE } from '@/lib/seo';
 
 export const metadata: Metadata = {
   title: {
-    default: 'RestroQR — Free Digital QR Menu for Restaurants',
+    default: HOME_TITLE,
     template: '%s | RestroQR',
   },
   description:
-    'Create a beautiful digital menu for your restaurant in minutes. Customers scan QR code, view menu instantly. Free forever, no app download needed for customers.',
+    HOME_DESCRIPTION,
   applicationName: 'RestroQR',
   keywords: [
     'RestroQR',
@@ -23,38 +25,36 @@ export const metadata: Metadata = {
     'QR code ordering',
     'digital restaurant menu free',
     'scan and order food',
-    'restaurant POS',
+    'free restaurant management app',
+    'free cafe management app',
+    'restaurant management app Android',
   ],
   authors: [{ name: 'RestroQR' }],
-  metadataBase: new URL('https://restro-qr-peach.vercel.app'),
-  alternates: {
-    canonical: '/',
-  },
+  metadataBase: new URL(SITE_URL),
   verification: {
     google: '1VojfIFEMi41CWLVS_8B9dxQWwz7Qy1dOFsXa8UzOmc',
   },
   openGraph: {
-    title: 'RestroQR — Free Digital QR Menu for Restaurants',
+    title: HOME_TITLE,
     description:
-      'Create a beautiful digital menu. Customers scan QR, see your menu and place orders. Free forever.',
+      HOME_DESCRIPTION,
     type: 'website',
-    siteName: 'RestroQR',
+    siteName: SITE_NAME,
     locale: 'en_IN',
-    url: 'https://restro-qr-peach.vercel.app',
     images: [
       {
-        url: '/logo.png',
-        width: 512,
-        height: 512,
-        alt: 'RestroQR Logo',
+        url: SOCIAL_IMAGE,
+        width: 1774,
+        height: 887,
+        alt: 'RestroQR digital menus and live orders with the Android owner app',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'RestroQR — Free Digital QR Menu',
-    description: 'Digital QR menu and ordering for restaurants. Free forever.',
-    images: ['/logo.png'],
+    title: HOME_TITLE,
+    description: HOME_DESCRIPTION,
+    images: [SOCIAL_IMAGE],
   },
   robots: {
     index: true,

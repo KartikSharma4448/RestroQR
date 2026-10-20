@@ -1,5 +1,8 @@
 import pool from '../config/database';
+import { menuOptionsEnabled, type MenuOptions } from './menuOptionsService';
+import { customerEmailOrderingEnabled } from './customerOrderEmailService';
 import { NotFoundError } from '../errors';
+import { getRestaurantOrderingState, profileActivationEnabled } from './restaurantProfileService';
 
 export interface PublicMenuItem {
   id: string;
@@ -7,6 +10,8 @@ export interface PublicMenuItem {
   description: string | null;
   price: string;
   imageUrl: string | null;
+  emoji?: string | null;
+  options?: MenuOptions;
   badge: string;
   isAvailable: boolean;
 }
@@ -24,6 +29,11 @@ export interface PublicMenuResponse {
     logoUrl: string | null;
     coverImageUrl: string | null;
     qrMode: string;
+    orderingEnabled?: boolean;
+    customerEmailRequired?: boolean;
+    waiterCallingEnabled?: boolean;
+    ownerPhotoUrl?: string | null;
+    address?: string;
   };
   categories: PublicCategory[];
 }
@@ -59,7 +69,7 @@ export async function getPublicMenu(token: string): Promise<PublicMenuResponse> 
 
   // Look up restaurant by token
   const restaurantResult = await pool.query(
-    'SELECT id, name, logo_url, cover_image_url, status, qr_mode FROM restaurants WHERE restaurant_token = $1',
+    `SELECT id, name, logo_url, cover_image_url, status, qr_mode${customerEmailOrderingEnabled() ? ',address,(SELECT profile_image_url FROM owners WHERE owners.id=restaurants.owner_id) AS owner_photo_url' : ''} FROM restaurants WHERE restaurant_token = $1${customerEmailOrderingEnabled() ? " AND EXISTS (SELECT 1 FROM owners WHERE owners.id=restaurants.owner_id AND owners.status='active')" : ''}`,
     [token]
   );
 
@@ -83,7 +93,7 @@ export async function getPublicMenu(token: string): Promise<PublicMenuResponse> 
 
   // Fetch all food items for this restaurant
   const itemsResult = await pool.query(
-    `SELECT id, category_id, name, description, price, image_url, badge, is_available
+    `SELECT id, category_id, name, description, price, image_url, badge, is_available${process.env.MENU_MEDIA_ENABLED === 'true' ? ', emoji' : ''}${menuOptionsEnabled() ? ', menu_options' : ''}
      FROM food_items WHERE restaurant_id = $1`,
     [restaurant.id]
   );
@@ -101,6 +111,8 @@ export async function getPublicMenu(token: string): Promise<PublicMenuResponse> 
       description: row.description || null,
       price: parseFloat(row.price).toFixed(2),
       imageUrl: row.image_url || null,
+      ...(process.env.MENU_MEDIA_ENABLED === 'true' ? { emoji: row.emoji || null } : {}),
+      ...(menuOptionsEnabled() ? { options: row.menu_options || { variants: [], addOns: [] } } : {}),
       badge: row.badge,
       isAvailable: row.is_available,
     });
@@ -120,6 +132,12 @@ export async function getPublicMenu(token: string): Promise<PublicMenuResponse> 
       logoUrl: restaurant.logo_url || null,
       coverImageUrl: restaurant.cover_image_url || null,
       qrMode: restaurant.qr_mode || 'single',
+      ...(process.env.WAITER_CALLING_ENABLED === 'true' ? {waiterCallingEnabled:true} : {}),
+      ...(customerEmailOrderingEnabled() ? { customerEmailRequired: true,
+        ownerPhotoUrl: restaurant.owner_photo_url || null, address: restaurant.address || '' } : {}),
+      ...(profileActivationEnabled() ? {
+        orderingEnabled: (await getRestaurantOrderingState(restaurant.id)).orderingEnabled,
+      } : {}),
     },
     categories,
   };

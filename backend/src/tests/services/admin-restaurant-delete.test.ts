@@ -38,4 +38,3 @@ it('does not attempt deletion when the restaurant does not exist', async () => {
   await expect(deleteRestaurant('missing')).rejects.toMatchObject({ statusCode: 404 });
   expect(query).toHaveBeenCalledTimes(1);
 });
-

@@ -163,32 +163,68 @@ class _DashboardScreenState extends State<DashboardScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
         children: [
-          Text(
-            'OVERVIEW',
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: AppColors.muted,
-              letterSpacing: 0,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            restaurant.name,
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 8),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(
-                Icons.location_on_outlined,
-                size: 16,
-                color: AppColors.muted,
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  restaurant.address,
-                  style: const TextStyle(color: AppColors.muted),
+              Container(
+                width: 54,
+                height: 54,
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  color: AppColors.accentSoft,
+                  borderRadius: BorderRadius.circular(8),
                 ),
+                child: restaurant.logoUrl != null
+                    ? Image.network(
+                        restaurant.logoUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, error, stack) => const Icon(
+                          Icons.storefront_outlined,
+                          color: AppColors.accent,
+                          size: 28,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.storefront_outlined,
+                        color: AppColors.accent,
+                        size: 28,
+                      ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'YOUR RESTAURANT',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: AppColors.muted,
+                        fontSize: 10,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      restaurant.name,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      restaurant.address,
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: 'Edit restaurant profile',
+                onPressed: () async {
+                  await context.push('/profile-setup');
+                  if (mounted) _loadRestaurant();
+                },
+                icon: const Icon(Icons.edit_outlined, size: 20),
               ),
             ],
           ),
@@ -212,6 +248,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
             ],
           ),
+          const SizedBox(height: 22),
+          const Divider(),
           const SectionHeading('Daily operations'),
           _shortcutGrid(),
           const SectionHeading('Restaurant'),
@@ -245,6 +283,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
             },
           ),
           const SectionHeading('Performance'),
+          if (const bool.fromEnvironment('CUSTOMER_ENGAGEMENT_ENABLED')) ...[
+            ActionRow(
+              icon: Icons.card_giftcard,
+              title: 'Guests & rewards',
+              onTap: () => context.push('/engagement'),
+            ),
+            const Divider(),
+          ],
           ActionRow(
             icon: Icons.account_balance_wallet_outlined,
             title: 'Revenue',
@@ -298,34 +344,60 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ];
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 340 ? 3 : 2;
-        final width = (constraints.maxWidth - (columns - 1) * 10) / columns;
+        final width = (constraints.maxWidth - 12) / 2;
         return Wrap(
-          spacing: 10,
-          runSpacing: 10,
+          spacing: 12,
+          runSpacing: 12,
           children: shortcuts
               .map(
                 (shortcut) => SizedBox(
-                  width: width,
-                  child: Card(
+                  width: shortcut.$3 == '/orders'
+                      ? constraints.maxWidth
+                      : width,
+                  child: Material(
+                    color: shortcut.$3 == '/orders'
+                        ? AppColors.accent
+                        : Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      side: BorderSide(
+                        color: shortcut.$3 == '/orders'
+                            ? AppColors.accent
+                            : AppColors.border,
+                      ),
+                    ),
                     child: InkWell(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(6),
                       onTap: () => context.push(shortcut.$3),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Row(
                           children: [
                             Icon(
                               shortcut.$1,
-                              color: AppColors.accent,
-                              size: 25,
+                              color: shortcut.$3 == '/orders'
+                                  ? Colors.white
+                                  : AppColors.accent,
+                              size: 23,
                             ),
-                            const SizedBox(height: 16),
-                            Text(
-                              shortcut.$2,
-                              style: Theme.of(context).textTheme.labelLarge,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                shortcut.$2,
+                                style: Theme.of(context).textTheme.labelLarge
+                                    ?.copyWith(
+                                      color: shortcut.$3 == '/orders'
+                                          ? Colors.white
+                                          : AppColors.ink,
+                                    ),
+                              ),
                             ),
+                            if (shortcut.$3 == '/orders')
+                              const Icon(
+                                Icons.arrow_forward,
+                                size: 20,
+                                color: Colors.white,
+                              ),
                           ],
                         ),
                       ),

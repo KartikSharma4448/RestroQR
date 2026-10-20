@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const ink = Color(0xFF20272B);
-  static const muted = Color(0xFF667279);
-  static const accent = Color(0xFF0F766E);
-  static const accentSoft = Color(0xFFE8F4F1);
-  static const background = Color(0xFFF6F7F9);
-  static const border = Color(0xFFE0E5E7);
-  static const amber = Color(0xFFB76A11);
+  static const ink = Color(0xFF202A24);
+  static const muted = Color(0xFF68746C);
+  static const accent = Color(0xFF215942);
+  static const accentSoft = Color(0xFFEDF3EF);
+  static const background = Color(0xFFF6F8F5);
+  static const border = Color(0xFFE1E7E0);
+  static const amber = Color(0xFF946019);
+  static const coral = Color(0xFFB95740);
+  static const blue = Color(0xFF446E9B);
 }
 
 ThemeData ownerTheme() {
@@ -17,6 +19,7 @@ ThemeData ownerTheme() {
   final scheme = ColorScheme.fromSeed(seedColor: AppColors.accent).copyWith(
     primary: AppColors.accent,
     secondary: AppColors.amber,
+    tertiary: AppColors.blue,
     surface: Colors.white,
     onSurface: AppColors.ink,
     error: const Color(0xFFB42334),
@@ -43,7 +46,7 @@ ThemeData ownerTheme() {
       labelMedium: text.labelMedium?.copyWith(letterSpacing: 0),
       labelSmall: text.labelSmall?.copyWith(letterSpacing: 0),
       headlineSmall: text.headlineSmall?.copyWith(
-        fontSize: 26,
+        fontSize: 24,
         fontWeight: FontWeight.w700,
         letterSpacing: 0,
       ),
@@ -80,10 +83,10 @@ ThemeData ownerTheme() {
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: false,
-      toolbarHeight: 64,
+      toolbarHeight: 60,
       titleTextStyle: TextStyle(
         fontFamily: 'Roboto',
-        fontSize: 20,
+        fontSize: 19,
         fontWeight: FontWeight.w700,
         color: AppColors.ink,
         letterSpacing: 0,
@@ -144,12 +147,20 @@ ThemeData ownerTheme() {
     listTileTheme: const ListTileThemeData(
       contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       iconColor: AppColors.muted,
+      titleTextStyle: TextStyle(
+        fontFamily: 'Roboto',
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: AppColors.ink,
+        letterSpacing: 0,
+      ),
     ),
     tabBarTheme: const TabBarThemeData(
       labelColor: AppColors.accent,
       unselectedLabelColor: AppColors.muted,
       indicatorColor: AppColors.accent,
       dividerColor: AppColors.border,
+      indicatorSize: TabBarIndicatorSize.tab,
       labelStyle: TextStyle(
         fontFamily: 'Roboto',
         fontSize: 14,
@@ -161,7 +172,15 @@ ThemeData ownerTheme() {
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
       indicatorColor: AppColors.accentSoft,
-      height: 72,
+      height: 74,
+      iconTheme: WidgetStateProperty.resolveWith(
+        (states) => IconThemeData(
+          size: 23,
+          color: states.contains(WidgetState.selected)
+              ? AppColors.accent
+              : AppColors.muted,
+        ),
+      ),
       labelTextStyle: WidgetStateProperty.resolveWith(
         (states) => TextStyle(
           fontFamily: 'Roboto',

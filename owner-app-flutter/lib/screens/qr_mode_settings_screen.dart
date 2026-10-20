@@ -31,6 +31,7 @@ class _QrModeSettingsScreenState extends State<QrModeSettingsScreen> {
   }
 
   Future<void> _loadCurrentMode() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -39,6 +40,7 @@ class _QrModeSettingsScreenState extends State<QrModeSettingsScreen> {
     try {
       final apiService = context.read<ApiService>();
       final response = await apiService.get('/owner/restaurant');
+      if (!mounted) return;
       final data = response.data;
 
       if (data['success'] == true && data['data'] != null) {
@@ -58,11 +60,13 @@ class _QrModeSettingsScreenState extends State<QrModeSettingsScreen> {
         });
       }
     } on DioException catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = _extractError(e);
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = 'Network error. Please check your connection.';
         _isLoading = false;
@@ -73,12 +77,13 @@ class _QrModeSettingsScreenState extends State<QrModeSettingsScreen> {
   Future<void> _onModeToggle(bool newValue) async {
     final targetMode = newValue ? 'multi' : 'single';
     final confirmed = await _showConfirmationDialog(targetMode);
-    if (confirmed != true) return;
+    if (!mounted || confirmed != true) return;
 
     setState(() => _isSaving = true);
 
     try {
       await _ownerApiService.updateQrMode(qrMode: targetMode);
+      if (!mounted) return;
       setState(() {
         _isMultiMode = newValue;
         _isSaving = false;
@@ -95,6 +100,7 @@ class _QrModeSettingsScreenState extends State<QrModeSettingsScreen> {
         );
       }
     } on DioException catch (e) {
+      if (!mounted) return;
       setState(() => _isSaving = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -105,6 +111,7 @@ class _QrModeSettingsScreenState extends State<QrModeSettingsScreen> {
         );
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isSaving = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

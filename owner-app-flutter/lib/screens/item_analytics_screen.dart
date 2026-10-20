@@ -19,7 +19,7 @@ class ItemAnalyticsScreen extends StatefulWidget {
 }
 
 class _ItemAnalyticsScreenState extends State<ItemAnalyticsScreen> {
-  late OwnerApiService _ownerApiService;
+  late final OwnerApiService _ownerApiService;
 
   // State
   bool _isLoading = true;
@@ -27,8 +27,9 @@ class _ItemAnalyticsScreenState extends State<ItemAnalyticsScreen> {
 
   List<ItemAnalytics> _items = [];
 
-  // Current selected month (format: yyyy-MM)
-  late String _selectedMonth;
+  late DateTime _selectedDate;
+  int _requestId = 0;
+  String get _selectedMonth => DateFormat('yyyy-MM').format(_selectedDate);
 
   // Period filter: daily, weekly, monthly
   String _selectedPeriod = 'monthly';
@@ -38,18 +39,32 @@ class _ItemAnalyticsScreenState extends State<ItemAnalyticsScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedMonth = DateFormat('yyyy-MM').format(DateTime.now());
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final apiService = context.read<ApiService>();
-    _ownerApiService = OwnerApiService(apiService);
+    final now = DateTime.now();
+    _selectedDate = DateTime(now.year, now.month, now.day);
+    _ownerApiService = OwnerApiService(context.read<ApiService>());
     _loadData();
   }
 
+  DateTime get _periodStart {
+    if (_selectedPeriod == 'monthly') {
+      return DateTime(_selectedDate.year, _selectedDate.month);
+    }
+    if (_selectedPeriod == 'weekly') {
+      return DateTime(_selectedDate.year, _selectedDate.month,
+          _selectedDate.day - (_selectedDate.weekday - 1));
+    }
+    return _selectedDate;
+  }
+
+  DateTime get _periodEnd {
+    final start = _periodStart;
+    return _selectedPeriod == 'monthly'
+        ? DateTime(start.year, start.month + 1)
+        : DateTime(start.year, start.month, start.day + (_selectedPeriod == 'weekly' ? 7 : 1));
+  }
+
   Future<void> _loadData() async {
+    final requestId = ++_requestId;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -59,17 +74,22 @@ class _ItemAnalyticsScreenState extends State<ItemAnalyticsScreen> {
       final items = await _ownerApiService.getItemAnalytics(
         period: _selectedPeriod,
         month: _selectedMonth,
+        startDate: _periodStart,
+        endDate: _periodEnd,
       );
+      if (!mounted || requestId != _requestId) return;
       setState(() {
         _items = items;
         _isLoading = false;
       });
     } on DioException catch (e) {
+      if (!mounted || requestId != _requestId) return;
       setState(() {
         _error = _extractError(e);
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted || requestId != _requestId) return;
       setState(() {
         _error = 'Failed to load item analytics.';
         _isLoading = false;
@@ -110,18 +130,17 @@ class _ItemAnalyticsScreenState extends State<ItemAnalyticsScreen> {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.parse('$_selectedMonth-01'),
+      initialDate: _selectedDate,
       firstDate: DateTime(2020),
       lastDate: now,
       initialEntryMode: DatePickerEntryMode.calendarOnly,
-      helpText: 'Select month',
+      helpText: _selectedPeriod == 'monthly' ? 'Select month' : 'Select date',
     );
 
-    if (picked != null) {
-      final newMonth = DateFormat('yyyy-MM').format(picked);
-      if (newMonth != _selectedMonth) {
+    if (picked != null && mounted) {
+      if (picked != _selectedDate) {
         setState(() {
-          _selectedMonth = newMonth;
+          _selectedDate = picked;
         });
         _loadData();
       }
@@ -132,9 +151,12 @@ class _ItemAnalyticsScreenState extends State<ItemAnalyticsScreen> {
     return '₹${amount.toStringAsFixed(2)}';
   }
 
-  String _formatMonth(String month) {
-    final date = DateTime.parse('$month-01');
-    return DateFormat('MMMM yyyy').format(date);
+  String get _periodLabel {
+    if (_selectedPeriod == 'monthly') return DateFormat('MMMM yyyy').format(_selectedDate);
+    if (_selectedPeriod == 'daily') return DateFormat('d MMM yyyy').format(_selectedDate);
+    final end = _periodEnd;
+    final lastDay = DateTime(end.year, end.month, end.day - 1);
+    return '${DateFormat('d MMM').format(_periodStart)} - ${DateFormat('d MMM yyyy').format(lastDay)}';
   }
 
   @override
@@ -146,21 +168,6 @@ class _ItemAnalyticsScreenState extends State<ItemAnalyticsScreen> {
   }
 
   Widget _buildBody() {
-    if (_error != null && _items.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
-            const SizedBox(height: 16),
-            Text(_error!, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            FilledButton(onPressed: _loadData, child: const Text('Retry')),
-          ],
-        ),
-      );
-    }
-
     return RefreshIndicator(
       onRefresh: _loadData,
       child: ListView(
@@ -189,12 +196,12 @@ class _ItemAnalyticsScreenState extends State<ItemAnalyticsScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              _formatMonth(_selectedMonth),
+            Expanded(child: Text(
+              _periodLabel,
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-            ),
+            )),
             const Icon(Icons.calendar_month, color: AppColors.accent),
           ],
         ),
@@ -238,6 +245,13 @@ class _ItemAnalyticsScreenState extends State<ItemAnalyticsScreen> {
         padding: EdgeInsets.all(32),
         child: Center(child: CircularProgressIndicator()),
       );
+    }
+
+    if (_error != null) {
+      return Column(children: [
+        Text(_error!, textAlign: TextAlign.center),
+        FilledButton(onPressed: _loadData, child: const Text('Retry')),
+      ]);
     }
 
     if (_items.isEmpty) {

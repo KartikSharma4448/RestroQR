@@ -24,7 +24,10 @@ class _EarningsScreenState extends State<EarningsScreen> {
   // State
   bool _isLoadingSummary = true;
   bool _isLoadingBreakdown = true;
-  String? _error;
+  String? _summaryError;
+  String? _breakdownError;
+  int _summaryRequestId = 0;
+  int _breakdownRequestId = 0;
 
   EarningsSummary? _summary;
   List<EarningsBreakdown> _breakdown = [];
@@ -56,33 +59,43 @@ class _EarningsScreenState extends State<EarningsScreen> {
   }
 
   Future<void> _loadSummary() async {
+    if (!mounted) return;
+    final requestId = ++_summaryRequestId;
     setState(() {
       _isLoadingSummary = true;
-      _error = null;
+      _summaryError = null;
+      _summary = null;
     });
 
     try {
       final summary = await _ownerApiService.getSummary(month: _selectedMonth);
+      if (!mounted || requestId != _summaryRequestId) return;
       setState(() {
         _summary = summary;
         _isLoadingSummary = false;
       });
     } on DioException catch (e) {
+      if (!mounted || requestId != _summaryRequestId) return;
       setState(() {
-        _error = _extractError(e);
+        _summaryError = _extractError(e);
         _isLoadingSummary = false;
       });
     } catch (e) {
+      if (!mounted || requestId != _summaryRequestId) return;
       setState(() {
-        _error = 'Failed to load earnings summary.';
+        _summaryError = 'Failed to load earnings summary.';
         _isLoadingSummary = false;
       });
     }
   }
 
   Future<void> _loadBreakdown() async {
+    if (!mounted) return;
+    final requestId = ++_breakdownRequestId;
     setState(() {
       _isLoadingBreakdown = true;
+      _breakdownError = null;
+      _breakdown = [];
     });
 
     try {
@@ -90,18 +103,21 @@ class _EarningsScreenState extends State<EarningsScreen> {
         period: _selectedPeriod,
         month: _selectedMonth,
       );
+      if (!mounted || requestId != _breakdownRequestId) return;
       setState(() {
         _breakdown = breakdown;
         _isLoadingBreakdown = false;
       });
     } on DioException catch (e) {
+      if (!mounted || requestId != _breakdownRequestId) return;
       setState(() {
-        _error = _extractError(e);
+        _breakdownError = _extractError(e);
         _isLoadingBreakdown = false;
       });
     } catch (e) {
+      if (!mounted || requestId != _breakdownRequestId) return;
       setState(() {
-        _error = 'Failed to load earnings breakdown.';
+        _breakdownError = 'Failed to load earnings breakdown.';
         _isLoadingBreakdown = false;
       });
     }
@@ -147,7 +163,7 @@ class _EarningsScreenState extends State<EarningsScreen> {
       helpText: 'Select month',
     );
 
-    if (picked != null) {
+    if (mounted && picked != null) {
       final newMonth = DateFormat('yyyy-MM').format(picked);
       if (newMonth != _selectedMonth) {
         setState(() {
@@ -180,21 +196,6 @@ class _EarningsScreenState extends State<EarningsScreen> {
   }
 
   Widget _buildBody() {
-    if (_error != null && _summary == null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
-            const SizedBox(height: 16),
-            Text(_error!, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            FilledButton(onPressed: _loadData, child: const Text('Retry')),
-          ],
-        ),
-      );
-    }
-
     return RefreshIndicator(
       onRefresh: _loadData,
       child: ListView(
@@ -245,6 +246,7 @@ class _EarningsScreenState extends State<EarningsScreen> {
         child: Center(child: CircularProgressIndicator()),
       );
     }
+    if (_summaryError != null) return _buildError(_summaryError!, _loadSummary);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
@@ -320,6 +322,9 @@ class _EarningsScreenState extends State<EarningsScreen> {
         child: Center(child: CircularProgressIndicator()),
       );
     }
+    if (_breakdownError != null) {
+      return _buildError(_breakdownError!, _loadBreakdown);
+    }
 
     if (_breakdown.isEmpty) {
       return Card(
@@ -345,6 +350,21 @@ class _EarningsScreenState extends State<EarningsScreen> {
       children: _breakdown.map((entry) => _buildBreakdownItem(entry)).toList(),
     );
   }
+
+  Widget _buildError(String message, Future<void> Function() retry) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 16),
+    child: Column(
+      children: [
+        Text(message, textAlign: TextAlign.center),
+        const SizedBox(height: 12),
+        FilledButton.icon(
+          onPressed: retry,
+          icon: const Icon(Icons.refresh),
+          label: const Text('Retry'),
+        ),
+      ],
+    ),
+  );
 
   Widget _buildBreakdownItem(EarningsBreakdown entry) {
     return Card(

@@ -61,10 +61,28 @@ Screenshots show local development builds with sample restaurant data.
 Order lifecycle: **Pending -> Preparing -> Ready -> Paid**, with cancellation where permitted.
 The owner API stores these as `pending -> accepted -> completed -> payment_received`.
 
-**Loyalty rewards are disabled** until customer identity verification is implemented.
+The legacy public phone-based loyalty lookup remains disabled. The new opt-in
+[loyalty and review flow](docs/LOYALTY-AND-REVIEWS.md) uses private emailed reward
+links without customer login/OTP. It is locally implemented behind rollout flags;
+production availability and device acceptance are not implied.
 The public board exposes initials, not phone numbers, totals or order contents.
 It shows up to 100 orders created in the last 24 hours; final states remain visible
 for 30 minutes after their latest update. This is polling, not a WebSocket stream.
+
+### Local Feature Rollout
+
+- Owner email signup/OTP and linked Google identity; profile and restaurant images.
+- Dish photos/emoji, sizes and add-ons with server-side pricing.
+- Order accepted, food ready and owner-confirmed payment receipt emails.
+- Amount-bound order UPI links, cash choice and private payment proof review.
+- Customer waiter calls with a foreground owner bell and a single OK action.
+- Seven distinct paid-date rewards, daily-spend rewards, owner controls, private
+  redemption, refund accounting and moderated paid-visit reviews.
+- Customer Order/Menu, Reviews and restaurant payment QR actions.
+
+These features require the documented migrations, provider configuration and
+explicit rollout flags. [Implementation status](docs/FEATURE-IMPLEMENTATION-PLAN.md)
+separates automated verification from pending device and production release gates.
 
 ## Stack
 

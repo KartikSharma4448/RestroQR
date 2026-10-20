@@ -8,20 +8,24 @@ interface Restaurant {
   name: string;
   address: string;
   phone: string;
-  logo_url: string | null;
-  cover_image_url: string | null;
-  restaurant_token: string;
+  logoUrl: string | null;
+  coverImageUrl: string | null;
+  restaurantToken: string;
   status: 'active' | 'disabled';
-  owner_id: string;
-  owner_name?: string;
-  owner_email?: string;
-  created_at: string;
-  updated_at: string;
+  owner: {
+    id: string;
+    name: string;
+    email: string | null;
+    phone: string | null;
+    status: string;
+  };
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface RestaurantResponse {
   success: boolean;
-  data: Restaurant;
+  data: { restaurant: Restaurant };
 }
 
 export default function RestaurantDetailPage() {
@@ -59,7 +63,7 @@ export default function RestaurantDetailPage() {
     setError('');
     try {
       const response = await api.get<RestaurantResponse>(`/admin/restaurants/${id}`);
-      const data = response.data.data;
+      const data = response.data.data.restaurant;
       setRestaurant(data);
       setFormData({
         name: data.name,
@@ -109,7 +113,10 @@ export default function RestaurantDetailPage() {
         address: formData.address.trim(),
         phone: formData.phone.trim(),
       });
-      setRestaurant(response.data.data);
+      const data = response.data.data.restaurant;
+      setRestaurant(data);
+      setFormData({ name: data.name, address: data.address, phone: data.phone });
+      setFormErrors({});
       setEditing(false);
       setSuccessMsg('Restaurant updated successfully.');
     } catch (err: unknown) {
@@ -216,10 +223,10 @@ export default function RestaurantDetailPage() {
       {/* Restaurant Profile Card */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         {/* Cover image */}
-        {restaurant.cover_image_url && (
+        {restaurant.coverImageUrl && (
           <div className="h-48 bg-gray-200 overflow-hidden">
             <img
-              src={restaurant.cover_image_url}
+              src={restaurant.coverImageUrl}
               alt={`${restaurant.name} cover`}
               className="w-full h-full object-cover"
             />
@@ -229,9 +236,9 @@ export default function RestaurantDetailPage() {
         <div className="p-6">
           <div className="flex items-start gap-4 mb-6">
             {/* Logo */}
-            {restaurant.logo_url && (
+            {restaurant.logoUrl && (
               <img
-                src={restaurant.logo_url}
+                src={restaurant.logoUrl}
                 alt={`${restaurant.name} logo`}
                 className="w-16 h-16 rounded-lg object-cover border border-gray-200"
               />
@@ -239,7 +246,7 @@ export default function RestaurantDetailPage() {
             <div className="flex-1">
               <h2 className="text-xl font-semibold text-gray-900">Restaurant Profile</h2>
               <p className="text-sm text-gray-500 mt-0.5">
-                Token: <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">{restaurant.restaurant_token}</code>
+                Token: <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs break-all">{restaurant.restaurantToken}</code>
               </p>
             </div>
             {!editing && (
@@ -359,19 +366,19 @@ export default function RestaurantDetailPage() {
                   <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Address</p>
                   <p className="text-sm text-gray-900 mt-1">{restaurant.address}</p>
                 </div>
-                {restaurant.owner_name && (
+                {restaurant.owner.name && (
                   <div>
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</p>
-                    <p className="text-sm text-gray-900 mt-1">{restaurant.owner_name}</p>
-                    {restaurant.owner_email && (
-                      <p className="text-xs text-gray-500">{restaurant.owner_email}</p>
+                    <p className="text-sm text-gray-900 mt-1">{restaurant.owner.name}</p>
+                    {restaurant.owner.email && (
+                      <p className="text-xs text-gray-500">{restaurant.owner.email}</p>
                     )}
                   </div>
                 )}
                 <div>
                   <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Created</p>
                   <p className="text-sm text-gray-900 mt-1">
-                    {new Date(restaurant.created_at).toLocaleDateString(undefined, {
+                    {new Date(restaurant.createdAt).toLocaleDateString(undefined, {
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric',

@@ -93,13 +93,18 @@ export function validateRegisterInput(input: RegisterInput): void {
   const errors: ValidationDetail[] = [];
 
   // Name is required and non-empty
-  if (!input.name || input.name.trim().length === 0) {
+  if (typeof input.name !== 'string' || input.name.trim().length === 0) {
     errors.push({ field: 'name', message: 'Name is required' });
   }
 
   // At least one of email or phone must be provided
-  const hasEmail = input.email !== undefined && input.email !== null && input.email.trim().length > 0;
-  const hasPhone = input.phone !== undefined && input.phone !== null && input.phone.trim().length > 0;
+  const hasEmail = typeof input.email === 'string' && input.email.trim().length > 0;
+  const hasPhone = typeof input.phone === 'string' && input.phone.trim().length > 0;
+  for (const field of ['email', 'phone'] as const) {
+    if (input[field] !== undefined && input[field] !== null && typeof input[field] !== 'string') {
+      errors.push({ field, message: `${field} must be a string` });
+    }
+  }
 
   if (!hasEmail && !hasPhone) {
     errors.push({ field: 'email', message: 'At least one of email or phone must be provided' });
@@ -122,7 +127,7 @@ export function validateRegisterInput(input: RegisterInput): void {
   }
 
   // Password must be at least 8 characters
-  if (!input.password || input.password.length < 8) {
+  if (typeof input.password !== 'string' || input.password.length < 8) {
     errors.push({ field: 'password', message: 'Password must be at least 8 characters' });
   }
 
@@ -150,7 +155,8 @@ export async function registerOwner(input: RegisterInput): Promise<RegisterResul
   // Check for existing email or phone
   if (email) {
     const existingEmail = await pool.query(
-      'SELECT id FROM owners WHERE email = $1',
+      `SELECT id FROM owners WHERE LOWER(email) = LOWER($1)
+       UNION ALL SELECT id FROM admins WHERE LOWER(email) = LOWER($1)`,
       [email]
     );
     if (existingEmail.rows.length > 0) {
@@ -222,7 +228,11 @@ export interface LoginResult {
  * doesn't exist or password is wrong (no information leakage).
  */
 export async function login(input: LoginInput): Promise<LoginResult> {
-  const { email, phone, password } = input;
+  const { email: suppliedEmail, phone, password } = input;
+  if (suppliedEmail != null && typeof suppliedEmail !== 'string') {
+    throw new ValidationError('Email must be a string');
+  }
+  const email = suppliedEmail?.trim();
 
   // Validate that at least one identifier is provided
   if (!email && !phone) {
@@ -250,7 +260,7 @@ export async function login(input: LoginInput): Promise<LoginResult> {
   if (email) {
     // Search owners by email first
     const ownerResult = await pool.query(
-      'SELECT id, password_hash, name, status FROM owners WHERE email = $1',
+      'SELECT id, password_hash, name, status FROM owners WHERE LOWER(email) = LOWER($1)',
       [email]
     );
 
@@ -264,7 +274,7 @@ export async function login(input: LoginInput): Promise<LoginResult> {
     } else {
       // Search admins by email
       const adminResult = await pool.query(
-        'SELECT id, password_hash FROM admins WHERE email = $1',
+        'SELECT id, password_hash FROM admins WHERE LOWER(email) = LOWER($1)',
         [email]
       );
 

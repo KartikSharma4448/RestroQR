@@ -1,5 +1,7 @@
 import { Router, Response, NextFunction } from 'express';
 import multer from 'multer';
+import { ValidationError } from '../../errors';
+import { getOwnerProfileSetup, setBusinessUpi, uploadOwnerProfileImages } from '../../services/restaurantProfileService';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import {
   createRestaurant,
@@ -10,6 +12,30 @@ import {
 } from '../../services/ownerRestaurantService';
 
 const router = Router();
+
+router.get('/restaurant/onboarding', async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try { res.json({ success: true, data: await getOwnerProfileSetup(req.user!.sub) }); }
+  catch (error) { next(error); }
+});
+
+router.put('/restaurant/business-upi', async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try { res.json({ success: true, data: await setBusinessUpi(req.user!.sub, req.body?.businessUpiId) }); }
+  catch (error) { next(error); }
+});
+
+const profileUpload = multer({ storage: multer.memoryStorage(), limits: {
+  fileSize: 5 * 1024 * 1024, files: 2, fields: 0, parts: 2,
+} }).fields([{ name: 'ownerPhoto', maxCount: 1 }, { name: 'cover', maxCount: 1 }]);
+
+router.post('/restaurant/profile-images', (req, res, next) => {
+  profileUpload(req, res, (error) => next(error ? new ValidationError('Choose at most two images, up to 5MB each') : undefined));
+}, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const files = req.files as Record<string, Express.Multer.File[]> | undefined;
+    res.json({ success: true, data: await uploadOwnerProfileImages(req.user!.sub,
+      { ownerPhoto: files?.ownerPhoto?.[0], cover: files?.cover?.[0] }) });
+  } catch (error) { next(error); }
+});
 
 // Multer configuration — memory storage for buffer access
 const upload = multer({

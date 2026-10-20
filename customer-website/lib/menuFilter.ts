@@ -14,6 +14,8 @@ export interface FilterableFoodItem {
   description: string | null;
   price: number;
   image_url: string | null;
+  emoji?: string | null;
+  options?: import('./menuOptions').MenuOptions;
   badge: 'veg' | 'non_veg';
   is_available: boolean;
 }

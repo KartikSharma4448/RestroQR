@@ -5,6 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../models/restaurant_models.dart';
 import '../services/api_service.dart';
+import '../services/auth_service.dart';
+import '../services/google_identity_service.dart';
+import '../ui/profile_identity_section.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -41,13 +44,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     try {
       final apiService = context.read<ApiService>();
       final response = await apiService.get('/owner/restaurant');
+      if (!mounted) return;
       final data = response.data;
 
       if (data['success'] == true && data['data'] != null) {
         final restaurant = RestaurantData.fromJson(
-          data['data'] is Map<String, dynamic>
-              ? data['data']
-              : data['data']['restaurant'] ?? data['data'],
+          data['data']['restaurant'] ?? data['data'],
         );
         _nameController.text = restaurant.name;
         _addressController.text = restaurant.address;
@@ -89,6 +91,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         await apiService.post('/owner/restaurant', data: body);
       }
 
+      if (ProfileIdentitySection.enabled && mounted) {
+        setState(() => _isEditing = true);
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -100,7 +106,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        context.go('/dashboard');
+        if (!ProfileIdentitySection.enabled) context.go('/dashboard');
       }
     } on DioException catch (e) {
       if (mounted) {
@@ -159,6 +165,35 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (ProfileIdentitySection.enabled)
+                      ProfileIdentitySection(canUpload: _isEditing),
+                    if (GoogleIdentityService.enabled) ...[
+                      OutlinedButton(
+                        onPressed:
+                            _isLoading || context.watch<AuthService>().isLoading
+                            ? null
+                            : () async {
+                                final auth = context.read<AuthService>();
+                                final success = await auth.signInWithGoogle(
+                                  link: true,
+                                );
+                                if (!context.mounted) return;
+                                if (success || auth.error != null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        success
+                                            ? 'Google account connected'
+                                            : auth.error!,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                        child: const Text('Connect Google account'),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
                     Text(
                       'Restaurant details',
                       style: Theme.of(context).textTheme.titleMedium,

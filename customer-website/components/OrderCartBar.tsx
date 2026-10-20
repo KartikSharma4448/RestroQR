@@ -1,32 +1,57 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import OrderPayment, { type PaymentAccess } from './OrderPayment';
 import { ArrowRight, Check, Minus, Plus, X } from 'lucide-react';
-import { useCart } from './CartContext';
+import { MAX_ITEM_QUANTITY, useCart } from './CartContext';
 import useDialog from './useDialog';
 
 interface OrderCartBarProps {
   tableToken: string;
   restaurantToken: string;
+  customerEmailRequired?: boolean;
 }
 
-export default function OrderCartBar({ tableToken, restaurantToken }: OrderCartBarProps) {
+export default function OrderCartBar({ tableToken, restaurantToken, customerEmailRequired = false }: OrderCartBarProps) {
   const { items, totalItems, totalPrice, addItem, removeItem, clearCart } = useCart();
   const [isOpen, setIsOpen] = useState(false);
   const [isPlacing, setIsPlacing] = useState(false);
+  const [customerName, setCustomerName] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const checkoutRequest = useRef<{ fingerprint: string; id: string } | null>(null);
   const [orderResult, setOrderResult] = useState<{
     orderRef: string;
     total: string;
-    items: { name: string; quantity: number; price: string }[];
+    emailConfirmation?: string;
+    payment?: PaymentAccess;
+    items: { name: string; quantity: number; price: string; optionSummary?: string }[];
   } | null>(null);
+  const [recentOrder,setRecentOrder] = useState<typeof orderResult>(null);
   const [orderError, setOrderError] = useState<string | null>(null);
-  const dialogRef = useDialog(orderResult ? 'confirmation' : isOpen, () => {
+  const savedKey = `restroqr-payment:${restaurantToken}:${tableToken}`;
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(savedKey);
+      if (saved) {
+        const value = JSON.parse(saved);
+        if (typeof value.orderRef === 'string' && typeof value.total === 'string' &&
+            /^[0-9a-f-]{36}$/i.test(value.payment?.orderId || '') && /^[0-9a-f]{64}$/.test(value.payment?.token || '') && Array.isArray(value.items)) {
+          setOrderResult(value); setRecentOrder(value);
+        }
+      }
+    } catch { /* Checkout still works when browser storage is unavailable. */ }
+  }, [savedKey]);
+  const closeDialog = () => {
     if (isPlacing) return;
     setIsOpen(false);
     setOrderResult(null);
-  });
+  };
+  const dialogRef = useDialog(orderResult ? 'confirmation' : isOpen, closeDialog);
 
-  if (totalItems === 0 && !orderResult) return null;
+  if (totalItems === 0 && !orderResult) return recentOrder ? <div className="fixed inset-x-0 bottom-0 z-40 bg-white p-4 shadow-lg">
+    <button type="button" onClick={() => setOrderResult(recentOrder)} className="mx-auto block w-full max-w-3xl rounded-md bg-teal-700 px-4 py-3 font-semibold text-white">View last order &amp; payment</button>
+  </div> : null;
 
   // Show order confirmation modal
   if (orderResult) {
@@ -42,13 +67,14 @@ export default function OrderCartBar({ tableToken, restaurantToken }: OrderCartB
           <p className="mt-1.5 text-center text-sm text-slate-400 font-semibold">
             Order Reference: <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-lg">{orderResult.orderRef}</span>
           </p>
+          {orderResult.emailConfirmation && <p role="status" className="mt-3 text-center text-sm text-slate-600">{orderResult.emailConfirmation === 'on_acceptance' ? 'Awaiting restaurant acceptance.' : 'Order confirmation email requested.'}</p>}
 
           {/* Order summary card */}
           <div className="mt-6 border-y border-slate-100 py-4">
             {orderResult.items.map((item, idx) => (
               <div key={idx} className="flex items-center justify-between py-2 text-sm border-b border-slate-200/40 last:border-0">
-                <span className="text-slate-600 font-bold">{item.name} <span className="text-slate-400 font-medium">× {item.quantity}</span></span>
-                <span className="font-semibold text-slate-800">₹{parseFloat(item.price).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                <span className="min-w-0 break-words pr-2 text-slate-600 font-bold">{item.name} <span className="text-slate-400 font-medium">× {item.quantity}</span>{item.optionSummary && <span className="block text-xs font-normal">{item.optionSummary}</span>}</span>
+                <span className="font-semibold text-slate-800">₹{(Math.round(Number(item.price) * 100) * item.quantity / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
               </div>
             ))}
             <div className="mt-3 border-t border-slate-200/80 pt-3">
@@ -59,9 +85,10 @@ export default function OrderCartBar({ tableToken, restaurantToken }: OrderCartB
             </div>
           </div>
 
+          {orderResult.payment && <OrderPayment access={orderResult.payment}/>}
           <button
             type="button"
-            onClick={() => setOrderResult(null)}
+            onClick={closeDialog}
             className="mt-6 w-full rounded-lg bg-slate-900 py-3.5 text-sm font-semibold text-white shadow-lg transition-all hover:bg-slate-800 active:scale-[0.98]"
           >
             Order More Dishes
@@ -73,22 +100,34 @@ export default function OrderCartBar({ tableToken, restaurantToken }: OrderCartB
 
   const handlePlaceOrder = async () => {
     if (items.length === 0 || isPlacing) return;
+    if (customerEmailRequired) {
+      const emailInput = document.getElementById('order-customer-email') as HTMLInputElement | null;
+      const phoneInput = document.getElementById('order-customer-phone') as HTMLInputElement | null;
+      if (!emailInput?.reportValidity() || !phoneInput?.reportValidity()) return;
+    }
 
     setIsPlacing(true);
     setOrderError(null);
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://restroqr-api.onrender.com';
+      const payload = {
+        tableToken,
+        ...(customerName.trim() ? { customerName: customerName.trim() } : {}),
+        ...(customerEmailRequired ? { customerEmail: customerEmail.trim().toLowerCase(),
+          ...(customerPhone.trim() ? { customerPhone: customerPhone.trim() } : {}) } : {}),
+        items: items.map(item => ({ itemId: item.foodItemId || item.id, quantity: item.quantity,
+          ...(item.variantId ? { variantId: item.variantId } : {}),
+          ...(item.addOnIds?.length ? { addOnIds: item.addOnIds } : {}) })),
+      };
+      const fingerprint = JSON.stringify(payload);
+      if (customerEmailRequired && checkoutRequest.current?.fingerprint !== fingerprint) {
+        checkoutRequest.current = { fingerprint, id: crypto.randomUUID() };
+      }
       const response = await fetch(`${apiUrl}/api/public/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tableToken,
-          items: items.map((item) => ({
-            itemId: item.id,
-            quantity: item.quantity,
-          })),
-        }),
+        body: JSON.stringify({ ...payload, ...(customerEmailRequired ? { requestId: checkoutRequest.current!.id } : {}) }),
       });
 
       if (!response.ok) {
@@ -101,7 +140,15 @@ export default function OrderCartBar({ tableToken, restaurantToken }: OrderCartB
 
       const result = await response.json();
       setOrderResult(result.data);
+      if (result.data.payment) {
+        setRecentOrder(result.data);
+        try { sessionStorage.setItem(savedKey,JSON.stringify(result.data)); } catch { /* Optional session persistence. */ }
+      }
       clearCart();
+      setCustomerName('');
+      setCustomerEmail('');
+      setCustomerPhone('');
+      checkoutRequest.current = null;
       setIsOpen(false);
     } catch {
       setOrderError('Network error. Please check your connection and try again.');
@@ -116,14 +163,14 @@ export default function OrderCartBar({ tableToken, restaurantToken }: OrderCartB
       {isOpen && (
         <div
           className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm transition-opacity duration-300"
-          onClick={() => setIsOpen(false)}
+          onClick={closeDialog}
           aria-hidden="true"
         />
       )}
 
       {/* Bottom Sheet */}
       {isOpen && (
-        <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Review your order" className="cart-sheet fixed inset-x-0 bottom-0 z-50 mx-auto max-w-3xl animate-slideUp">
+        <div ref={dialogRef} role="dialog" aria-modal="true" aria-busy={isPlacing} tabIndex={-1} aria-label="Review your order" className="cart-sheet fixed inset-x-0 bottom-0 z-50 mx-auto max-w-3xl animate-slideUp">
           <div className="rounded-t-lg border-t border-slate-100 bg-white/95 pb-6 shadow-2xl backdrop-blur-xl">
             {/* Handle bar */}
             <div className="flex justify-center py-3">
@@ -135,8 +182,9 @@ export default function OrderCartBar({ tableToken, restaurantToken }: OrderCartB
               <h2 className="text-xl font-semibold  text-slate-800">Review Your Order</h2>
               <button
                 type="button"
-                onClick={() => setIsOpen(false)}
-                className="rounded-full p-2 text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors"
+                onClick={closeDialog}
+                disabled={isPlacing}
+                className="rounded-full p-2 text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Close"
               >
                 <X size={20} aria-hidden="true" />
@@ -164,6 +212,7 @@ export default function OrderCartBar({ tableToken, restaurantToken }: OrderCartB
                     </span>
                     <div>
                       <p className="text-sm font-semibold text-slate-800 leading-tight">{item.name}</p>
+                      {item.optionSummary && <p className="mt-1 break-words text-xs text-slate-600">{item.optionSummary}</p>}
                       <p className="text-xs text-slate-500 font-bold mt-1">₹{item.price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
                     </div>
                   </div>
@@ -173,7 +222,8 @@ export default function OrderCartBar({ tableToken, restaurantToken }: OrderCartB
                     <button
                       type="button"
                       onClick={() => removeItem(item.id)}
-                      className="flex h-11 w-11 items-center justify-center text-white hover:bg-teal-800 active:scale-90 transition-all"
+                      disabled={isPlacing}
+                      className="flex h-11 w-11 items-center justify-center text-white hover:bg-teal-800 active:scale-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       aria-label={`Decrease ${item.name}`}
                     >
                       <Minus size={16} aria-hidden="true" />
@@ -183,8 +233,10 @@ export default function OrderCartBar({ tableToken, restaurantToken }: OrderCartB
                     </span>
                     <button
                       type="button"
-                      onClick={() => addItem({ id: item.id, name: item.name, price: item.price, badge: item.badge })}
-                      className="flex h-11 w-11 items-center justify-center text-white hover:bg-teal-800 active:scale-90 transition-all"
+                      onClick={() => addItem(item)}
+                      disabled={isPlacing || item.quantity >= MAX_ITEM_QUANTITY}
+                      title={item.quantity >= MAX_ITEM_QUANTITY ? `Maximum quantity: ${MAX_ITEM_QUANTITY}` : 'Increase quantity'}
+                      className="flex h-11 w-11 items-center justify-center text-white hover:bg-teal-800 active:scale-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       aria-label={`Increase ${item.name}`}
                     >
                       <Plus size={16} aria-hidden="true" />
@@ -192,6 +244,38 @@ export default function OrderCartBar({ tableToken, restaurantToken }: OrderCartB
                   </div>
                 </div>
               ))}
+            </div>
+
+            <div className="px-6 pb-4">
+              {customerEmailRequired && <>
+                <label htmlFor="order-customer-email" className="block text-sm font-semibold text-slate-800">Email for order confirmation</label>
+                <input id="order-customer-email" type="email" required maxLength={254} autoComplete="email"
+                  value={customerEmail} onChange={event => setCustomerEmail(event.target.value)} disabled={isPlacing}
+                  className="mb-4 mt-2 w-full rounded-md border border-slate-300 px-3 py-2.5 text-base text-slate-900" />
+              </>}
+              <label htmlFor="order-customer-name" className="block text-sm font-semibold text-slate-800">
+                Your name <span className="font-normal text-slate-500">(optional)</span>
+              </label>
+              <input
+                id="order-customer-name"
+                type="text"
+                value={customerName}
+                onChange={(event) => setCustomerName(event.target.value)}
+                maxLength={100}
+                autoComplete="off"
+                disabled={isPlacing}
+                aria-describedby="order-customer-name-privacy"
+                className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2.5 text-base text-slate-900 focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/20 disabled:opacity-60"
+              />
+              <p id="order-customer-name-privacy" className="mt-2 text-xs text-slate-500">
+                Shared with the restaurant. Only your initials appear on the public order board.
+              </p>
+              {customerEmailRequired && <>
+                <label htmlFor="order-customer-phone" className="mt-4 block text-sm font-semibold text-slate-800">Mobile number <span className="font-normal text-slate-500">(optional)</span></label>
+                <input id="order-customer-phone" type="tel" inputMode="numeric" pattern="[0-9]{10}" maxLength={10} autoComplete="tel-national"
+                  value={customerPhone} onChange={event => setCustomerPhone(event.target.value)} disabled={isPlacing}
+                  className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2.5 text-base text-slate-900" />
+              </>}
             </div>
 
             {/* Error message */}
@@ -227,6 +311,7 @@ export default function OrderCartBar({ tableToken, restaurantToken }: OrderCartB
       {!isOpen && (
         <div className="fixed inset-x-0 bottom-0 z-50 animate-slideUp">
           <div className="mx-auto max-w-3xl px-4 pb-6">
+            {recentOrder && <button type="button" onClick={() => setOrderResult(recentOrder)} className="mb-2 w-full rounded-md border border-teal-700 bg-white px-4 py-2 text-sm font-semibold text-teal-800">View last order &amp; payment</button>}
             <button
               type="button"
               onClick={() => setIsOpen(true)}

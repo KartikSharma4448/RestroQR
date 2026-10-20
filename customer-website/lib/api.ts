@@ -63,6 +63,9 @@ interface ApiMenuItem {
   description: string | null;
   price: string;
   imageUrl: string | null;
+  emoji?: string | null;
+  options?: { variants: { id: string; name: string; price: string; isAvailable: boolean }[];
+    addOns: { id: string; name: string; price: string; isAvailable: boolean }[] };
   badge: 'veg' | 'non_veg';
   isAvailable: boolean;
 }
@@ -82,6 +85,11 @@ interface ApiMenuResponse {
       logoUrl: string | null;
       coverImageUrl: string | null;
       qrMode: string;
+      orderingEnabled?: boolean;
+      customerEmailRequired?: boolean;
+      waiterCallingEnabled?: boolean;
+      ownerPhotoUrl?: string | null;
+      address?: string;
     };
     categories: ApiCategory[];
   };
@@ -94,6 +102,8 @@ export interface MenuItem {
   description: string | null;
   price: number;
   image_url: string | null;
+  emoji?: string | null;
+  options?: import('./menuOptions').MenuOptions;
   badge: 'veg' | 'non_veg';
   is_available: boolean;
 }
@@ -111,6 +121,11 @@ export interface MenuData {
     logo_url: string | null;
     cover_image_url: string | null;
     qr_mode: string;
+    ordering_enabled?: boolean;
+    customer_email_required?: boolean;
+    waiter_calling_enabled?: boolean;
+    owner_photo_url?: string | null;
+    address?: string;
   };
   categories: Category[];
 }
@@ -130,6 +145,11 @@ export async function fetchMenu(token: string): Promise<{ success: true; data: M
         logo_url: raw.data.restaurant.logoUrl,
         cover_image_url: raw.data.restaurant.coverImageUrl,
         qr_mode: raw.data.restaurant.qrMode || 'single',
+        ordering_enabled: raw.data.restaurant.orderingEnabled,
+        customer_email_required: raw.data.restaurant.customerEmailRequired,
+        waiter_calling_enabled: raw.data.restaurant.waiterCallingEnabled,
+        owner_photo_url: raw.data.restaurant.ownerPhotoUrl,
+        address: raw.data.restaurant.address,
       },
       categories: raw.data.categories.map((cat) => ({
         id: cat.id,
@@ -141,6 +161,11 @@ export async function fetchMenu(token: string): Promise<{ success: true; data: M
           description: item.description,
           price: parseFloat(item.price),
           image_url: item.imageUrl,
+          emoji: item.emoji,
+          options: item.options ? {
+            variants: item.options.variants.map(option => ({ ...option, price: Number(option.price) })),
+            addOns: item.options.addOns.map(option => ({ ...option, price: Number(option.price) })),
+          } : undefined,
           badge: item.badge,
           is_available: item.isAvailable,
         })),

@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../models/restaurant_models.dart';
 import '../services/api_service.dart';
+import '../ui/dish_media_editor.dart';
+import '../ui/dish_options_editor.dart';
 
 class FoodItemFormScreen extends StatefulWidget {
   final String categoryId;
@@ -30,6 +32,9 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
   String _badge = 'veg';
   bool _isAvailable = true;
   bool _isLoading = false;
+  DishMediaDraft? _media;
+  String? _savedItemId;
+  Map<String, dynamic>? _options;
 
   bool get _isEditing => widget.existingItem != null;
 
@@ -58,13 +63,15 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
 
     setState(() => _isLoading = true);
 
+    var detailsSaved = false;
     try {
       final apiService = context.read<ApiService>();
       final price = double.parse(_priceController.text.trim());
 
-      if (_isEditing) {
+      final itemId = widget.existingItem?.id ?? _savedItemId;
+      if (itemId != null) {
         await apiService.put(
-          '/owner/items/${widget.existingItem!.id}',
+          '/owner/items/$itemId',
           data: {
             'name': _nameController.text.trim(),
             'description': _descriptionController.text.trim().isNotEmpty
@@ -74,14 +81,14 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
             'badge': _badge,
           },
         );
-        if (_isAvailable != widget.existingItem!.isAvailable) {
+        if (_isEditing && _isAvailable != widget.existingItem!.isAvailable) {
           await apiService.patch(
             '/owner/items/${widget.existingItem!.id}/availability',
             data: {'isAvailable': _isAvailable},
           );
         }
       } else {
-        await apiService.post(
+        final created = await apiService.post(
           '/owner/items',
           data: {
             'categoryId': widget.categoryId,
@@ -93,6 +100,38 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
             'badge': _badge,
           },
         );
+        if (DishMediaEditor.enabled || DishOptionsEditor.enabled) {
+          _savedItemId = created.data['data']['item']['id'] as String;
+        }
+      }
+
+      detailsSaved = true;
+      if (DishOptionsEditor.enabled && _options != null) {
+        final savedId = widget.existingItem?.id ?? _savedItemId!;
+        await apiService.put('/owner/items/$savedId/options', data: _options);
+        _options = null;
+      }
+      if (DishMediaEditor.enabled && _media != null) {
+        final savedId = widget.existingItem?.id ?? _savedItemId!;
+        final media = _media!;
+        if (media.bytes != null) {
+          await apiService.post(
+            '/owner/items/$savedId/image',
+            data: FormData.fromMap({
+              'image': MultipartFile.fromBytes(
+                media.bytes!,
+                filename: 'dish.${media.subtype}',
+                contentType: DioMediaType('image', media.subtype!),
+              ),
+            }),
+          );
+        } else {
+          await apiService.put(
+            '/owner/items/$savedId/media',
+            data: {'emoji': media.emoji},
+          );
+        }
+        _media = null;
       }
 
       if (mounted) {
@@ -106,13 +145,17 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        context.pop();
+        context.pop(true);
       }
     } on DioException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_extractError(e)),
+            content: Text(
+              detailsSaved && (_media != null || _options != null)
+                  ? 'Item details saved. Options or media failed: ${_extractError(e)} Retry saving.'
+                  : _extractError(e),
+            ),
             backgroundColor: Colors.red.shade700,
           ),
         );
@@ -152,7 +195,7 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+          onPressed: () => context.pop(_savedItemId != null ? true : null),
         ),
         title: Text(_isEditing ? 'Edit Item' : 'Add Item'),
       ),
@@ -205,7 +248,7 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
                     return 'Price is required';
                   }
                   final price = double.tryParse(value.trim());
-                  if (price == null) {
+                  if (price == null || !price.isFinite) {
                     return 'Enter a valid number';
                   }
                   if (price < 0.01) {
@@ -218,6 +261,13 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
                 },
               ),
               const SizedBox(height: 24),
+              if (DishMediaEditor.enabled)
+                DishMediaEditor(
+                  imageUrl: widget.existingItem?.imageUrl,
+                  emoji: widget.existingItem?.emoji,
+                  busy: _isLoading,
+                  onChanged: (value) => _media = value,
+                ),
               Text(
                 'Food Type',
                 style: Theme.of(
@@ -262,6 +312,12 @@ class _FoodItemFormScreenState extends State<FoodItemFormScreen> {
                 ),
               ],
               const SizedBox(height: 32),
+              if (DishOptionsEditor.enabled)
+                DishOptionsEditor(
+                  initial: widget.existingItem?.options,
+                  busy: _isLoading,
+                  onChanged: (value) => _options = value,
+                ),
               FilledButton(
                 onPressed: _isLoading ? null : _handleSubmit,
                 style: FilledButton.styleFrom(

@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
+import { SITE_URL } from '@/lib/seo';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
+  alternates: { canonical: `${SITE_URL}/privacy-policy` },
   description: 'Privacy Policy for RestroQR - Digital QR Menu and Ordering Platform',
 };
 
