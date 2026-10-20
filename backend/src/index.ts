@@ -1,0 +1,101 @@
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import dotenv from 'dotenv';
+import { publicRateLimiter, authRateLimiter } from './middleware/rateLimiter';
+import { notFound } from './middleware/notFound';
+import { errorHandler } from './middleware/errorHandler';
+import { authenticate, requireRole } from './middleware/auth';
+import authRoutes from './routes/auth';
+import adminOwnersRoutes from './routes/admin/owners';
+import adminRestaurantRoutes from './routes/admin/restaurants';
+import ownerRestaurantRoutes from './routes/owner/restaurant';
+import ownerCategoryRoutes from './routes/owner/categories';
+import ownerQrRoutes from './routes/owner/qr';
+import ownerItemRoutes from './routes/owner/items';
+import ownerSettingsRoutes from './routes/owner/settings';
+import ownerTableRoutes from './routes/owner/tables';
+import ownerOrdersRoutes from './routes/owner/orders';
+import ownerEarningsRoutes from './routes/owner/earnings';
+import ownerNotificationRoutes from './routes/owner/notifications';
+import publicMenuRoutes from './routes/public/menu';
+import publicOrderRoutes from './routes/public/orders';
+import publicLoyaltyRoutes from './routes/public/loyalty';
+
+dotenv.config();
+
+const app = express();
+const PORT = Number(process.env.PORT || 3000);
+
+// Security middleware
+app.use(helmet());
+
+// CORS configuration — restrict to known origins
+const allowedOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+// Always allow the customer website origin (Vercel deployment)
+const customerSiteOrigin = process.env.CUSTOMER_BASE_URL || 'https://restro-qr-peach.vercel.app';
+if (!allowedOrigins.includes(customerSiteOrigin)) {
+  allowedOrigins.push(customerSiteOrigin);
+}
+
+// In development, allow localhost if no origins configured
+if (allowedOrigins.length === 0 || process.env.NODE_ENV !== 'production') {
+  const devOrigins = ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001', 'http://localhost:8080', 'http://127.0.0.1:5173', 'http://127.0.0.1:3001'];
+  for (const origin of devOrigins) {
+    if (!allowedOrigins.includes(origin)) {
+      allowedOrigins.push(origin);
+    }
+  }
+}
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, server-to-server)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+}));
+app.use(publicRateLimiter);
+app.use(express.json({ limit: '10kb' }));
+
+// Health check
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Routes
+app.use('/api/auth', authRateLimiter, authRoutes);
+app.use('/api/admin/owners', authenticate, requireRole('admin'), adminOwnersRoutes);
+app.use('/api/admin/restaurants', authenticate, requireRole('admin'), adminRestaurantRoutes);
+app.use('/api/owner', authenticate, requireRole('owner'), ownerRestaurantRoutes);
+app.use('/api/owner', authenticate, requireRole('owner'), ownerCategoryRoutes);
+app.use('/api/owner', authenticate, requireRole('owner'), ownerQrRoutes);
+app.use('/api/owner', authenticate, requireRole('owner'), ownerItemRoutes);
+app.use('/api/owner', authenticate, requireRole('owner'), ownerSettingsRoutes);
+app.use('/api/owner', authenticate, requireRole('owner'), ownerTableRoutes);
+app.use('/api/owner', authenticate, requireRole('owner'), ownerOrdersRoutes);
+app.use('/api/owner', authenticate, requireRole('owner'), ownerEarningsRoutes);
+app.use('/api/owner', authenticate, requireRole('owner'), ownerNotificationRoutes);
+app.use('/api/public', publicMenuRoutes);
+app.use('/api/public', publicOrderRoutes);
+app.use('/api/public', publicLoyaltyRoutes);
+
+// 404 catch-all (must be after all routes)
+app.use(notFound);
+
+// Global error handler (must be the LAST middleware)
+app.use(errorHandler);
+
+if (require.main === module) {
+  app.listen(PORT, process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1', () => {
+    console.log(`RestroQR API server running on port ${PORT}`);
+  });
+}
+
+export default app;
