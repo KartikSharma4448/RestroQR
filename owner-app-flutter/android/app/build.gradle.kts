@@ -53,6 +53,12 @@ android {
     }
 }
 
+dependencies {
+    // WaiterMessagingService extends the firebase_messaging plugin's service, so the
+    // app module needs the same Firebase BoM version the FlutterFire plugins use.
+    implementation(platform("com.google.firebase:firebase-bom:33.16.0"))
+    implementation("com.google.firebase:firebase-messaging")
+}
 flutter {
     source = "../.."
 }

@@ -50,9 +50,12 @@ export async function sendWaiterNotification(restaurantId: string,tableName: str
   try {
     const result=await pool.query(`SELECT ft.token FROM fcm_tokens ft JOIN restaurants r ON r.owner_id=ft.owner_id WHERE r.id=$1`,[restaurantId]);
     if (!result.rows.length) return;
+    // Data-only on purpose: with a "notification" block Android shows a quiet system
+    // notification and never wakes the app. Without it the owner app's native
+    // service receives the message in the background and rings the alarm itself.
+    // The short TTL stops a stale request from ringing after the owner is back online.
     await getMessaging(app).send({token:result.rows[0].token,
-      notification:{title:'Waiter requested',body:`${tableName} needs assistance`},
-      data:{type:'waiter_call',callId,tableName},android:{priority:'high'}});
+      data:{type:'waiter_call',callId,tableName},android:{priority:'high',ttl:120000}});
   } catch { console.error('Waiter notification delivery failed'); }
 }
 

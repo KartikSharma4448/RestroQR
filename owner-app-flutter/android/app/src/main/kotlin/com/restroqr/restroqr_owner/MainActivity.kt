@@ -4,9 +4,7 @@ import android.app.Activity
 import android.content.ContentValues
 import android.content.Intent
 import android.net.Uri
-import android.media.AudioAttributes
 import android.media.MediaPlayer
-import android.media.RingtoneManager
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -32,22 +30,13 @@ class MainActivity : FlutterActivity() {
                         if (!activityResumed || waiterPlayer != null) {
                             result.success(null)
                         } else {
-                            val player = MediaPlayer()
-                            try {
-                                val tone = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-                                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-                                player.setAudioAttributes(AudioAttributes.Builder()
-                                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
-                                player.setDataSource(this, tone)
-                                player.isLooping = true
-                                player.prepare()
+                            val player = WaiterAlarm.createPlayer(this)
+                            if (player == null) {
+                                result.error("SOUND_UNAVAILABLE", "Alarm sound unavailable", null)
+                            } else {
                                 player.start()
                                 waiterPlayer = player
                                 result.success(null)
-                            } catch (_: Exception) {
-                                player.release()
-                                result.error("SOUND_UNAVAILABLE", "Notification sound unavailable", null)
                             }
                         }
                     }
@@ -153,14 +142,41 @@ class MainActivity : FlutterActivity() {
         waiterPlayer = null
     }
 
+    override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        super.onCreate(savedInstanceState)
+        showOverLockScreenIfFromAlarm(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        showOverLockScreenIfFromAlarm(intent)
+    }
+
+    // Only an alarm launch may appear over the lock screen, so the app is not
+    // exposed there during normal use.
+    private fun showOverLockScreenIfFromAlarm(launch: Intent?) {
+        if (launch?.getBooleanExtra(WaiterAlarm.EXTRA_FROM_ALARM, false) != true) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         activityResumed = true
+        WaiterAlarm.appForeground = true
+        // The in-app overlay takes over the ringing from here.
+        WaiterAlarm.stop(this)
     }
 
     override fun onPause() {
+        val wasRinging = waiterPlayer != null
         activityResumed = false
+        WaiterAlarm.appForeground = false
         stopWaiterSound()
+        // An unanswered request keeps ringing if the owner leaves the app.
+        if (wasRinging) WaiterAlarm.start(this, "")
         super.onPause()
     }
 
