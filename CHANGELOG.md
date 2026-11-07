@@ -10,8 +10,18 @@
 - Native Android QR gallery saving and older-platform document-picker fallback.
 - Public order validation, privacy and concurrent status-update regression tests.
 - Setup, API, security, contribution, deployment and verification documentation.
+- Monthly investment tracking (topic, price, date) with automatic totals and net
+  profit against paid-order revenue (`/api/owner/investments`, migration 026).
+- Optional Google Maps review link in the owner profile and a Review on Google
+  button on the customer menu (migration 025; https Google hosts only).
+- Background waiter-call alarm in the Android owner app: native foreground service
+  with looping alarm tone, vibration and full-screen alert.
 
 ### Changed
+
+- Waiter-call push is now data-only with high priority and a two-minute TTL.
+  Owner app builds without the new service will not show it in the background.
+- Investment and Revenue screens show plain messages instead of raw server errors.
 
 - Customer framework upgraded to Next.js 15 / React 19.
 - Backend development runner moved to tsx; Docker runtime moved to Node.js 24.

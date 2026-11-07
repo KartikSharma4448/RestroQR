@@ -55,6 +55,8 @@ Screenshots show local development builds with sample restaurant data.
 | Android owner app | Menu editing, table management, QR mode selection and order management |
 | QR downloads | Android 10+ gallery saving; document-picker fallback on older Android |
 | Operations | Earnings, item analytics and order history |
+| Investment and profit | Monthly investment list (topic, price, date) with an automatic total; net profit = paid-order revenue minus investment |
+| Google Maps reviews | Optional review link set in the owner profile; the customer menu shows a Review on Google button that opens it |
 | Administration | Owner and restaurant management behind role-based authentication |
 | Notifications | Firebase Cloud Messaging when project credentials and device tokens are configured |
 
@@ -75,7 +77,13 @@ for 30 minutes after their latest update. This is polling, not a WebSocket strea
 - Dish photos/emoji, sizes and add-ons with server-side pricing.
 - Order accepted, food ready and owner-confirmed payment receipt emails.
 - Amount-bound order UPI links, cash choice and private payment proof review.
-- Customer waiter calls with a foreground owner bell and a single OK action.
+- Customer waiter calls. The owner app rings a looping alarm with vibration and a
+  full-screen alert, also when the app is in the background or closed, and stops
+  when the owner opens the app and presses OK. See [waiter calling](docs/WAITER-CALLING.md).
+- Monthly investment tracking on the owner Revenue screen: add a topic and price,
+  the month total is calculated, and net profit or loss is shown against paid-order revenue.
+- Optional Google Maps review link in the owner profile, shown to customers as a
+  Review on Google button. Only https links on Google hosts are accepted.
 - Seven distinct paid-date rewards, daily-spend rewards, owner controls, private
   redemption, refund accounting and moderated paid-visit reviews.
 - Customer Order/Menu, Reviews and restaurant payment QR actions.
@@ -112,6 +120,9 @@ npm run dev
 ```
 
 API: `http://127.0.0.1:3000`. The health endpoint checks the process, not database readiness.
+`npm start` applies all migrations (currently 001 to 026) before the server starts, so
+back up the database before deploying. Migration 025 adds the Google review link
+column and 026 adds the investments table; neither deletes data.
 
 ### Customer Website
 
@@ -149,6 +160,30 @@ flutter run --dart-define=API_BASE_URL=http://127.0.0.1:3000/api
 
 Android emulator networking and release signing are covered in [setup](docs/SETUP.md).
 Use an HTTPS API for production.
+
+Several owner features are off unless the app is built with its Dart flag, and they
+also need the matching backend flag and provider keys:
+
+| Flag (`--dart-define=NAME=true`) | Enables |
+| --- | --- |
+| `GOOGLE_OWNER_AUTH_ENABLED` | Sign in with Google and Google account linking |
+| `OWNER_EMAIL_SIGNUP_ENABLED` | Email signup with OTP |
+| `OWNER_PROFILE_ACTIVATION_ENABLED` | Owner photo, restaurant cover and business UPI setup |
+| `MENU_MEDIA_ENABLED` | Dish photo or emoji |
+| `MENU_OPTIONS_ENABLED` | Dish sizes and add-ons |
+| `WAITER_CALLING_ENABLED` | Waiter-call overlay and background alarm |
+| `CUSTOMER_ENGAGEMENT_ENABLED` | Guests and rewards screen |
+
+Investment tracking and the Google Maps review link need no app flag, only the
+updated backend and migrations 025 and 026. A debug APK for a phone:
+
+```powershell
+cd owner-app-flutter
+flutter build apk --debug --dart-define=GOOGLE_OWNER_AUTH_ENABLED=true --dart-define=WAITER_CALLING_ENABLED=true
+```
+
+The APK is written to `build/app/outputs/flutter-apk/app-debug.apk`. Without
+`--dart-define=API_BASE_URL=...` it uses the hosted API.
 
 ## Repository Map
 

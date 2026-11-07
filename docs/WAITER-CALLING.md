@@ -5,7 +5,10 @@
 Customer scans a valid table QR and taps Call waiter without login, email or OTP.
 The request is persisted before a best-effort push to the restaurant owner's app.
 The owner app shows a full-screen table alert on any authenticated screen and
-loops the Android notification tone until OK is pressed. OK silences immediately
+loops the Android alarm tone until OK is pressed. When the app is in the
+background or closed, a native foreground service rings the same looping alarm
+with vibration and posts a full-screen alert; opening the app hands over to the
+in-app alert. OK silences immediately
 and closes the request in one step; no Acknowledge/Resolve controls remain.
 On save failure the screen offers OK retry without restarting the bell. Multiple
 table calls are handled oldest-first, one OK per call. Notification taps use the
@@ -33,11 +36,23 @@ account, staff assignment, guaranteed arrival time or automatic payment action.
 - Push failure does not erase the request. Owner panel polling is the fallback.
   Android notification permissions, connectivity and battery/force-stop policy
   can prevent background delivery. Actual device acceptance is still required.
-- Continuous audio is foreground-only. It stops on background/logout/disposal;
-  unresolved calls reappear when the app resumes. Notification/DND volume is not
-  overridden. No full-screen-intent permission, background launch override or
-  alarm-category policy declaration is added. Background uses ordinary FCM
-  notification, not an unrestricted lock-screen alarm.
+- Background alarm: the server sends a data-only, high-priority push with a
+  two-minute TTL (no `notification` block, which would make Android show a quiet
+  system notification and skip the app). `WaiterMessagingService` receives it and
+  starts `WaiterAlarmService`, a media-playback foreground service that loops the
+  alarm tone (alarm audio stream) and vibrates. It stops when the owner opens the
+  app (the in-app alert takes over), or after two minutes. If the owner minimizes
+  the app while it is ringing, the service continues.
+- The app declares `FOREGROUND_SERVICE_MEDIA_PLAYBACK`, `USE_FULL_SCREEN_INTENT`,
+  `VIBRATE` and `POST_NOTIFICATIONS`. The activity only shows over the lock screen
+  when launched from the alarm. On Android 14 and later the owner may need to allow
+  full-screen notifications for the app in system settings.
+- The alarm uses the alarm volume, which the owner can silence. Do Not Disturb
+  rules still apply. Aggressive battery managers (some Xiaomi, Oppo, Vivo and
+  Samsung phones) may stop a background app; set battery use to Unrestricted.
+  Force-stopped apps receive no push at all.
+- Older owner app builds do not understand the data-only push and show nothing in
+  the background, so deploy the backend and the new owner app together.
   Android restriction reference: https://developer.android.com/about/versions/14/behavior-changes-14
 - Active owner list is bounded to the oldest 100 requests. Define data retention
   for resolved history and expand pagination before large-table deployments.
@@ -50,4 +65,6 @@ Browser tests cover request/legacy acknowledgement/closed states, refresh, error
 cooldown and mobile layout. Flutter tests cover looping sound commands, one OK,
 silent network retry, foreground/background/logout cleanup and small screens.
 Providers remain mocked in automated tests; do not claim live background delivery
-until the user confirms a real local phone test. No email is sent for waiter calls.
+until the user confirms a real local phone test. The native background alarm
+service has been compiled and its manifest merge checked, but it has not been
+tested on a physical phone yet. No email is sent for waiter calls.
