@@ -44,14 +44,17 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
           e.type == DioExceptionType.connectionError) {
         return 'Network error. Please check your connection.';
       }
+      // Never show raw server or route errors to the owner.
+      final status = e.response?.statusCode ?? 0;
+      if (status == 404 || status == 405 || status >= 500) {
+        return 'Investment is not available right now. '
+            'Please try again in a little while.';
+      }
       final data = e.response?.data;
-      if (data is Map && data['error'] is Map) {
+      if (status >= 400 && data is Map && data['error'] is Map) {
+        // Validation messages (for example a bad price) are written for owners.
         final message = data['error']['message'];
         if (message != null) return message.toString();
-      }
-      if (e.response?.statusCode == 404 || e.response?.statusCode == 500) {
-        return 'Investments are not available on the server yet. '
-            'Update the backend and run migrations.';
       }
     }
     return 'Something went wrong. Please try again.';

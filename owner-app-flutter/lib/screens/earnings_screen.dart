@@ -152,11 +152,11 @@ class _EarningsScreenState extends State<EarningsScreen> {
       return 'Network error. Please check your connection.';
     }
     if (e.response?.statusCode == 404) {
-      return 'Earnings feature is not yet available on the server. '
-          'Please ensure your backend is updated and migrations have been run.';
+      return 'Earnings are not available right now. '
+          'Please try again in a little while.';
     }
     if (e.response?.statusCode == 500) {
-      return 'Server error. The earnings service may not be fully deployed yet.';
+      return 'Something went wrong on our side. Please try again in a little while.';
     }
     if (e.response?.data is Map) {
       final data = e.response!.data as Map;
