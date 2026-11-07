@@ -2,10 +2,11 @@
 import {useEffect,useState} from 'react';
 import {Copy,Gift,Star} from 'lucide-react';
 import {apiFetch} from '@/lib/api';
-interface Reward {restaurant:string;reward:string;kind:string;status:string;expiresAt:string}
+interface Reward {restaurant:string;reward:string;kind:string;status:string;expiresAt:string;googleReviewUrl?:string|null}
 export default function PrivateVisit({kind}:{kind:'reward'|'review'}) {
   const [secret,setSecret]=useState(''),[reward,setReward]=useState<Reward|null>(null),[restaurant,setRestaurant]=useState('');
   const [submitted,setSubmitted]=useState(false),[rating,setRating]=useState(5),[body,setBody]=useState('');
+  const [googleUrl,setGoogleUrl]=useState<string|null>(null);
   const [error,setError]=useState(''),[busy,setBusy]=useState(true),[copied,setCopied]=useState(false),[attempt,setAttempt]=useState(0);
   useEffect(()=>{
     const value=window.location.hash.slice(1);setSecret(value);
@@ -14,7 +15,7 @@ export default function PrivateVisit({kind}:{kind:'reward'|'review'}) {
     const [token,claim]=value.split('.');
     apiFetch<{data:Reward&{submitted:boolean}}>(kind==='reward'?'/api/public/rewards/view':'/api/public/reviews/view',{
       method:'POST',body:JSON.stringify({token,claim}),signal:controller.signal,cache:'no-store',
-    }).then(result=>{if(!active)return;if(kind==='reward')setReward(result.data);setRestaurant(result.data.restaurant);setSubmitted(result.data.submitted);})
+    }).then(result=>{if(!active)return;if(kind==='reward')setReward(result.data);setRestaurant(result.data.restaurant);setSubmitted(result.data.submitted);setGoogleUrl(result.data.googleReviewUrl??null);})
       .catch(e=>{if(active)setError(e instanceof Error?e.message:'Link unavailable');}).finally(()=>{clearTimeout(timer);if(active)setBusy(false);});
     return()=>{active=false;controller.abort();clearTimeout(timer);};
   },[kind,attempt]);
@@ -40,5 +41,6 @@ export default function PrivateVisit({kind}:{kind:'reward'|'review'}) {
       <label className="block font-semibold">Your review<textarea maxLength={1000} value={body} onChange={e=>setBody(e.target.value)} className="mt-2 block min-h-32 w-full rounded-md border border-slate-300 p-3 font-normal"/></label>
       <button disabled={busy} className="rounded-md bg-teal-700 px-6 py-3 font-semibold text-white disabled:opacity-50">Submit review</button>
     </form>)}
+    {kind==='review'&&restaurant&&googleUrl&&<a href={googleUrl} target="_blank" rel="noopener noreferrer" className="mt-6 flex items-center justify-center gap-2 rounded-md border border-teal-700 px-6 py-3 font-semibold text-teal-800"><Star size={18}/>Also review us on Google Maps</a>}
   </main>;
 }

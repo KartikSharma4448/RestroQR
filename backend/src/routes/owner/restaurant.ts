@@ -54,12 +54,13 @@ router.post(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const ownerId = req.user!.sub;
-      const { name, address, phone } = req.body;
+      const { name, address, phone, googleReviewUrl } = req.body;
 
       const restaurant = await createRestaurant({
         name,
         address,
         phone,
+        googleReviewUrl,
         ownerId,
       });
 
@@ -71,6 +72,7 @@ router.post(
             name: restaurant.name,
             address: restaurant.address,
             phone: restaurant.phone,
+            googleReviewUrl: restaurant.googleReviewUrl,
             restaurantToken: restaurant.restaurantToken,
             status: restaurant.status,
             createdAt: restaurant.createdAt,
@@ -113,9 +115,9 @@ router.put(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const ownerId = req.user!.sub;
-      const { name, address, phone } = req.body;
+      const { name, address, phone, googleReviewUrl } = req.body;
 
-      const restaurant = await updateRestaurant(ownerId, { name, address, phone });
+      const restaurant = await updateRestaurant(ownerId, { name, address, phone, googleReviewUrl });
 
       res.status(200).json({
         success: true,

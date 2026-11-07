@@ -21,6 +21,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final _nameController = TextEditingController();
   final _addressController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _googleReviewController = TextEditingController();
   bool _isLoading = false;
   bool _isEditing = false;
 
@@ -35,6 +36,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     _nameController.dispose();
     _addressController.dispose();
     _phoneController.dispose();
+    _googleReviewController.dispose();
     super.dispose();
   }
 
@@ -54,6 +56,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         _nameController.text = restaurant.name;
         _addressController.text = restaurant.address;
         _phoneController.text = restaurant.phone;
+        _googleReviewController.text = restaurant.googleReviewUrl ?? '';
         _isEditing = true;
       }
     } on DioException catch (e) {
@@ -83,6 +86,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         'name': _nameController.text.trim(),
         'address': _addressController.text.trim(),
         'phone': _phoneController.text.trim(),
+        // Empty clears the link on the server.
+        'googleReviewUrl': _googleReviewController.text.trim(),
       };
 
       if (_isEditing) {
@@ -256,6 +261,35 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                         }
                         if (value.trim().length > 20) {
                           return 'Phone must be 20 characters or less';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _googleReviewController,
+                      decoration: const InputDecoration(
+                        labelText: 'Google Maps review link (optional)',
+                        hintText: 'https://g.page/r/.../review',
+                        helperText:
+                            'Customers tap Review on your menu page to open this link',
+                        helperMaxLines: 2,
+                        prefixIcon: Icon(Icons.rate_review_outlined),
+                        border: OutlineInputBorder(),
+                        counterText: '',
+                      ),
+                      maxLength: 500,
+                      keyboardType: TextInputType.url,
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      validator: (value) {
+                        final text = value?.trim() ?? '';
+                        if (text.isEmpty) return null;
+                        final uri = Uri.tryParse(text);
+                        if (uri == null ||
+                            uri.scheme != 'https' ||
+                            uri.host.isEmpty) {
+                          return 'Enter a full https:// Google Maps link';
                         }
                         return null;
                       },

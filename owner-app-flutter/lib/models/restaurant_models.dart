@@ -5,6 +5,7 @@ class RestaurantData {
   final String phone;
   final String? logoUrl;
   final String? coverImageUrl;
+  final String? googleReviewUrl;
   final String? restaurantToken;
   final String? status;
   final String qrMode;
@@ -16,6 +17,7 @@ class RestaurantData {
     required this.phone,
     this.logoUrl,
     this.coverImageUrl,
+    this.googleReviewUrl,
     this.restaurantToken,
     this.status,
     this.qrMode = 'single',
@@ -29,6 +31,7 @@ class RestaurantData {
       phone: json['phone'] ?? '',
       logoUrl: json['logoUrl'] ?? json['logo_url'],
       coverImageUrl: json['coverImageUrl'] ?? json['cover_image_url'],
+      googleReviewUrl: json['googleReviewUrl'] ?? json['google_review_url'],
       restaurantToken: json['restaurantToken'] ?? json['restaurant_token'],
       status: json['status'],
       qrMode: json['qrMode'] ?? json['qr_mode'] ?? 'single',

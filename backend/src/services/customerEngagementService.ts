@@ -20,6 +20,47 @@ function capability(value: unknown): string {
     throw new NotFoundError('Link not available');
   return hash(value);
 }
+// Hosts Google uses for Maps place pages, short links and "write a review" links.
+// Owners choose this link, so it is restricted to Google hosts to avoid phishing redirects.
+const GOOGLE_REVIEW_HOSTS = new Set([
+  'google.com',
+  'www.google.com',
+  'maps.google.com',
+  'search.google.com',
+  'g.page',
+  'g.co',
+  'maps.app.goo.gl',
+  'goo.gl',
+]);
+export function validateGoogleReviewUrl(input: unknown): string | null {
+  if (input === null || input === undefined) return null;
+  const invalid = () =>
+    new ValidationError('Enter a valid Google Maps review link (https only)');
+  if (typeof input !== 'string') throw invalid();
+  const value = input.trim();
+  if (!value) return null;
+  if (value.length > 500) throw invalid();
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw invalid();
+  }
+  const host = url.hostname.toLowerCase();
+  const path = url.pathname.toLowerCase();
+  if (
+    url.protocol !== 'https:' ||
+    url.username ||
+    url.password ||
+    url.port ||
+    !GOOGLE_REVIEW_HOSTS.has(host) ||
+    ((host === 'google.com' || host === 'www.google.com') &&
+      !(path.startsWith('/maps') || path === '/search')) ||
+    (host === 'goo.gl' && !path.startsWith('/maps'))
+  )
+    throw invalid();
+  return url.href;
+}
 export function validateLoyaltySettings(input: Record<string, unknown>) {
   const { enabled, scheme, visitReward, spendReward, thresholdCents, expiryDays, timezone } = input;
   if (
@@ -458,7 +499,7 @@ export async function reviewVisit(token: unknown, input?: { rating: unknown; bod
     await client.query('BEGIN');
     const row = (
       await client.query(
-        `SELECT v.*,r.name FROM customer_reviews v JOIN restaurants r ON r.id=v.restaurant_id
+        `SELECT v.*,r.name,r.google_review_url FROM customer_reviews v JOIN restaurants r ON r.id=v.restaurant_id
       JOIN owners o ON o.id=r.owner_id JOIN orders q ON q.id=v.order_id WHERE v.token_hash=$1 AND r.status='active' AND o.status='active'
       AND q.status='payment_received' AND v.created_at>NOW()-INTERVAL '30 days' FOR UPDATE OF v`,
         [digest],
@@ -473,7 +514,11 @@ export async function reviewVisit(token: unknown, input?: { rating: unknown; bod
       );
     }
     await client.query('COMMIT');
-    return { restaurant: row.name, submitted: input ? true : row.rating !== null };
+    return {
+      restaurant: row.name,
+      submitted: input ? true : row.rating !== null,
+      googleReviewUrl: row.google_review_url ?? null,
+    };
   } catch (e) {
     await client.query('ROLLBACK');
     throw e;
@@ -496,7 +541,7 @@ export async function publicEngagement(token: string) {
   if (!/^[A-Za-z0-9]{8,80}$/.test(token)) throw new NotFoundError('Menu not found');
   const row = (
     await pool.query(
-      `SELECT r.id,r.name,r.business_upi_id AS upi_id FROM restaurants r JOIN owners o ON o.id=r.owner_id
+      `SELECT r.id,r.name,r.business_upi_id AS upi_id,r.google_review_url FROM restaurants r JOIN owners o ON o.id=r.owner_id
     WHERE r.restaurant_token=$1 AND r.status='active' AND o.status='active'`,
       [token],
     )
@@ -539,5 +584,6 @@ export async function publicEngagement(token: string) {
     reviews,
     summary,
     payment,
+    googleReviewUrl: row.google_review_url ?? null,
   };
 }

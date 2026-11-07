@@ -23,6 +23,7 @@ import 'screens/orders_screen.dart';
 import 'screens/qr_code_screen.dart';
 import 'screens/tables_screen.dart';
 import 'screens/earnings_screen.dart';
+import 'screens/investments_screen.dart';
 import 'screens/order_history_screen.dart';
 import 'screens/item_analytics_screen.dart';
 import 'screens/qr_mode_settings_screen.dart';
@@ -237,6 +238,11 @@ class _RestroQRAppState extends State<RestroQRApp> {
         GoRoute(
           path: '/earnings',
           builder: (context, state) => const EarningsScreen(),
+        ),
+        GoRoute(
+          path: '/investments',
+          builder: (context, state) =>
+              InvestmentsScreen(initialMonth: state.extra as String?),
         ),
         GoRoute(
           path: '/order-history',

@@ -62,15 +62,16 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Week'));
     await tester.pump();
-    api.pending[2].completeError(Exception('failed'));
+    // Request 2 is the optional investment lookup; Week breakdown is request 3.
+    api.pending[3].completeError(Exception('failed'));
     await tester.pumpAndSettle();
     expect(find.text('OLD-DAY'), findsNothing);
     expect(find.text('Failed to load earnings breakdown.'), findsOneWidget);
     expect(find.text('1 paid orders'), findsOneWidget);
     await tester.tap(find.text('Retry'));
     await tester.pump();
-    expect(api.queries[3]['period'], 'weekly');
-    api.complete(3, {
+    expect(api.queries[4]['period'], 'weekly');
+    api.complete(4, {
       'breakdown': [
         {'date': 'CURRENT-WEEK', 'totalRevenue': '20.00', 'totalOrders': 2},
       ],
@@ -89,7 +90,8 @@ void main() {
         await tester.pump();
         await tester.tap(find.text('Week'));
         await tester.pump();
-        api.complete(2, {
+        // Request 2 is the optional investment lookup; Week breakdown is 3.
+        api.complete(3, {
           'breakdown': [
             {'date': 'CURRENT-WEEK', 'totalRevenue': '20.00', 'totalOrders': 2},
           ],
@@ -217,6 +219,7 @@ void main() {
       'Sample Cafe',
       'Sample Street',
       '9999999999',
+      '', // Optional Google Maps review link is empty when none is saved.
     ]);
     expect(find.text('Edit Profile'), findsOneWidget);
   });

@@ -1,11 +1,13 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../ui/app_theme.dart';
 import '../ui/owner_widgets.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../models/earnings_model.dart';
+import '../models/investment_model.dart';
 import '../services/api_service.dart';
 import '../services/owner_api_service.dart';
 
@@ -32,6 +34,11 @@ class _EarningsScreenState extends State<EarningsScreen> {
   EarningsSummary? _summary;
   List<EarningsBreakdown> _breakdown = [];
 
+  // Investment total and net profit for the month. Optional: if it cannot be
+  // loaded the revenue views still work and only the profit rows are hidden.
+  InvestmentReport? _investment;
+  int _investmentRequestId = 0;
+
   // Current selected month (format: yyyy-MM)
   late String _selectedMonth;
 
@@ -55,7 +62,22 @@ class _EarningsScreenState extends State<EarningsScreen> {
   }
 
   Future<void> _loadData() async {
-    await Future.wait([_loadSummary(), _loadBreakdown()]);
+    await Future.wait([_loadSummary(), _loadBreakdown(), _loadInvestment()]);
+  }
+
+  Future<void> _loadInvestment() async {
+    if (!mounted) return;
+    final requestId = ++_investmentRequestId;
+    setState(() => _investment = null);
+    try {
+      final report = await _ownerApiService.getInvestments(
+        month: _selectedMonth,
+      );
+      if (!mounted || requestId != _investmentRequestId) return;
+      setState(() => _investment = report);
+    } catch (_) {
+      // Leave the profit rows hidden; the Investment button stays available.
+    }
   }
 
   Future<void> _loadSummary() async {
@@ -189,6 +211,13 @@ class _EarningsScreenState extends State<EarningsScreen> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: const Text('Revenue'),
+        actions: [
+          IconButton(
+            tooltip: 'Investment and profit',
+            icon: const Icon(Icons.account_balance_wallet_outlined),
+            onPressed: _openInvestments,
+          ),
+        ],
       ),
       body: _buildBody(),
       bottomNavigationBar: const OwnerNavigation(selected: 3),
@@ -278,11 +307,60 @@ class _EarningsScreenState extends State<EarningsScreen> {
               ),
             ],
           ),
+          if (_investment != null) ...[
+            const SizedBox(height: 16),
+            _buildProfitSection(_investment!),
+          ],
           const SizedBox(height: 20),
           const Divider(),
         ],
       ),
     );
+  }
+
+  Widget _buildProfitSection(InvestmentReport report) {
+    final profit = report.netProfit >= 0;
+    final color = profit ? Colors.green.shade700 : Colors.red.shade700;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Investment this month',
+                style: TextStyle(color: AppColors.muted),
+              ),
+            ),
+            Text('- ${_formatCurrency(report.totalInvestment)}'),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                profit ? 'Net profit' : 'Net loss',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+            Text(
+              _formatCurrency(report.netProfit.abs()),
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _openInvestments() async {
+    await context.push('/investments', extra: _selectedMonth);
+    if (mounted) _loadInvestment();
   }
 
   Widget _buildPeriodToggle() => Column(

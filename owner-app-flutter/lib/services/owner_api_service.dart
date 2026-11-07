@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import '../models/earnings_model.dart';
+import '../models/investment_model.dart';
 import '../models/order_model.dart';
 import '../models/table_model.dart';
 import 'api_service.dart';
@@ -151,6 +152,48 @@ class OwnerApiService {
     return items
         .map((item) => EarningsBreakdown.fromJson(item as Map<String, dynamic>))
         .toList();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Investments (owner expenses) and profit
+  // ---------------------------------------------------------------------------
+
+  /// Investment list, revenue and net profit for a "yyyy-MM" month.
+  Future<InvestmentReport> getInvestments({required String month}) async {
+    final response = await _apiService.get(
+      '/owner/investments',
+      queryParameters: {'month': month},
+    );
+    return InvestmentReport.fromJson(
+      Map<String, dynamic>.from(response.data['data'] as Map),
+    );
+  }
+
+  Future<void> addInvestment({
+    required String topic,
+    required String amount,
+    required String spentOn,
+  }) async {
+    await _apiService.post(
+      '/owner/investments',
+      data: {'topic': topic, 'amount': amount, 'spentOn': spentOn},
+    );
+  }
+
+  Future<void> updateInvestment({
+    required String id,
+    required String topic,
+    required String amount,
+    required String spentOn,
+  }) async {
+    await _apiService.put(
+      '/owner/investments/$id',
+      data: {'topic': topic, 'amount': amount, 'spentOn': spentOn},
+    );
+  }
+
+  Future<void> deleteInvestment(String id) async {
+    await _apiService.delete('/owner/investments/$id');
   }
 
   /// Get paginated order history with optional status filter.

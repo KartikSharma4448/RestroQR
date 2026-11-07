@@ -24,6 +24,7 @@ interface Engagement {
   reviews: { rating: number; body: string; submitted_at: string }[];
   summary: { count: number; average: string | null };
   payment: null | { upiId: string; url: string; qr: string };
+  googleReviewUrl: string | null;
 }
 export default function RestaurantEngagement({
   token,
@@ -74,6 +75,17 @@ export default function RestaurantEngagement({
           <ArrowDown size={20} />
           <span>{ordering ? 'Order food' : 'Menu'}</span>
         </a>
+        {data?.googleReviewUrl && (
+          <a
+            href={data.googleReviewUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="cafe-action"
+          >
+            <Star size={20} />
+            <span>Review on Google</span>
+          </a>
+        )}
         <button
           type="button"
           aria-label="Reviews"

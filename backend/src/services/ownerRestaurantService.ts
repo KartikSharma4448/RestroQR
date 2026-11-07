@@ -2,6 +2,7 @@ import { customAlphabet } from 'nanoid';
 import { v2 as cloudinary } from 'cloudinary';
 import pool from '../config/database';
 import { profileActivationEnabled } from './restaurantProfileService';
+import { validateGoogleReviewUrl } from './customerEngagementService';
 import {
   ValidationError,
   ValidationDetail,
@@ -24,12 +25,14 @@ export interface CreateRestaurantInput {
   address: string;
   phone: string;
   ownerId: string;
+  googleReviewUrl?: unknown;
 }
 
 export interface UpdateRestaurantInput {
   name?: string;
   address?: string;
   phone?: string;
+  googleReviewUrl?: unknown;
 }
 
 export interface RestaurantRecord {
@@ -40,6 +43,7 @@ export interface RestaurantRecord {
   restaurantToken: string;
   logoUrl: string | null;
   coverImageUrl: string | null;
+  googleReviewUrl: string | null;
   status: string;
   qrMode: string;
   createdAt: string;
@@ -138,6 +142,7 @@ function mapRow(row: Record<string, unknown>): RestaurantRecord {
     restaurantToken: row.restaurant_token as string,
     logoUrl: (row.logo_url as string) || null,
     coverImageUrl: (row.cover_image_url as string) || null,
+    googleReviewUrl: (row.google_review_url as string) || null,
     status: row.status as string,
     qrMode: (row.qr_mode as string) || 'single',
     createdAt: (row.created_at as Date).toISOString(),
@@ -161,15 +166,17 @@ export async function createRestaurant(input: CreateRestaurantInput): Promise<Re
     throw new ConflictError('You already have a restaurant profile');
   }
 
+  const googleReviewUrl = validateGoogleReviewUrl(input.googleReviewUrl);
+
   // Generate unique token
   const restaurantToken = await generateUniqueToken();
 
   // Insert restaurant record
   const result = await pool.query(
-    `INSERT INTO restaurants (owner_id, name, address, phone, restaurant_token, status${profileActivationEnabled() ? ', onboarding_required' : ''})
-     VALUES ($1, $2, $3, $4, $5, 'active'${profileActivationEnabled() ? ', true' : ''})
-     RETURNING id, owner_id, name, address, phone, logo_url, cover_image_url, restaurant_token, status, qr_mode, created_at, updated_at`,
-    [input.ownerId, input.name.trim(), input.address.trim(), input.phone.trim(), restaurantToken]
+    `INSERT INTO restaurants (owner_id, name, address, phone, restaurant_token, google_review_url, status${profileActivationEnabled() ? ', onboarding_required' : ''})
+     VALUES ($1, $2, $3, $4, $5, $6, 'active'${profileActivationEnabled() ? ', true' : ''})
+     RETURNING id, owner_id, name, address, phone, logo_url, cover_image_url, google_review_url, restaurant_token, status, qr_mode, created_at, updated_at`,
+    [input.ownerId, input.name.trim(), input.address.trim(), input.phone.trim(), restaurantToken, googleReviewUrl]
   );
 
   return mapRow(result.rows[0]);
@@ -180,7 +187,7 @@ export async function createRestaurant(input: CreateRestaurantInput): Promise<Re
  */
 export async function getRestaurantByOwner(ownerId: string): Promise<RestaurantRecord> {
   const result = await pool.query(
-    `SELECT id, owner_id, name, address, phone, logo_url, cover_image_url, restaurant_token, status, qr_mode, created_at, updated_at
+    `SELECT id, owner_id, name, address, phone, logo_url, cover_image_url, google_review_url, restaurant_token, status, qr_mode, created_at, updated_at
      FROM restaurants WHERE owner_id = $1`,
     [ownerId]
   );
@@ -235,6 +242,12 @@ export async function updateRestaurant(
     values.push(input.phone.trim());
   }
 
+  if (input.googleReviewUrl !== undefined) {
+    // Empty string or null clears the link.
+    setClauses.push(`google_review_url = $${paramIndex++}`);
+    values.push(validateGoogleReviewUrl(input.googleReviewUrl));
+  }
+
   if (setClauses.length === 0) {
     // No fields to update — return current state
     return getRestaurantByOwner(ownerId);
@@ -245,7 +258,7 @@ export async function updateRestaurant(
 
   const result = await pool.query(
     `UPDATE restaurants SET ${setClauses.join(', ')} WHERE id = $${paramIndex}
-     RETURNING id, owner_id, name, address, phone, logo_url, cover_image_url, restaurant_token, status, qr_mode, created_at, updated_at`,
+     RETURNING id, owner_id, name, address, phone, logo_url, cover_image_url, google_review_url, restaurant_token, status, qr_mode, created_at, updated_at`,
     values
   );
 
